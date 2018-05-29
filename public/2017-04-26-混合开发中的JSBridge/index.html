@@ -1,0 +1,627 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+    
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="E-Lim">
+    <title>移动混合开发中的 JSBridge - E-Lim</title>
+    <meta name="author" content="Edwon Lim">
+    
+    
+    
+    <script type="application/ld+json">{"@context":"http://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"Edwon Lim","sameAs":["https://ymfe.org","https://ws3.sinaimg.cn/large/006tKfTcly1frsdntpo4aj30jb0ich0m.jpg","https://weibo.com/edwonlim","https://github.com/EdwonLim","mailto:edwon.lim@gmail.com"],"image":"https://tva4.sinaimg.cn/crop.0.0.512.512.180/71c50075jw8eprl9kjt8ej20e80e80tc.jpg"},"articleBody":"【导读】关于 JSBridge，绝大多数同学最早遇到的是微信的 WeiXinJSBridge（现在被封装成 JSSDK），各种 Web 页面可以通过 Bridge 调用微信提供的一些原生功能，为用户提供相关的功能。其实，JSBridge 很早就出现在软件开发中，在一些桌面软件中很早就运用了这样的形式，多用在通知、产品详情、广告等模块中，然后这些模块中，使用的是 Web UI，而相关按钮点击后，调用的是 Native 功能。现在移动端盛行，不管是 Hybrid 应用，还是 React-Native 都离不开 JSBridge，当然也包括在国内举足轻重的微信小程序。那么，JSBridge 到底是什么？它的出现是为了什么？它究竟是怎么实现的？在这篇文章中，会在移动混合开发的范畴内，将给大家带来 JSBridge 的深入剖析。\n\n前言有些童鞋听到 JSBridge 这个名词，就是觉得非常高上大，有了它 Web 和 Native 可以进行交互，就像『进化药水』，让 Web 摇身一变，成为移动战场的『上将一名』。其实并非如此，JSBridge 其实真是一个很简单的东西，更多的是一种形式、一种思想。\nJSBridge 的起源为什么是 JSBridge ？而不是 PythonBridge 或是 RubyBridge ？\n当然不是因为 JavaScript 语言高人一等（虽然斯坦福大学已经把算法导论的语言从 Java 改成 JavaScript，小得意一下，嘻嘻），主要的原因还是因为 JavaScript 主要载体 Web 是当前世界上的 最易编写 、 最易维护 、 最易部署 的 UI 构建方式。工程师可以用很简单的 HTML 标签和 CSS 样式快速的构建出一个页面，并且在服务端部署后，用户不需要主动更新，就能看到最新的 UI 展现。\n因此，开发维护成本 和 更新成本 较低的 Web 技术成为混合开发中几乎不二的选择，而作为 Web 技术逻辑核心的 JavaScript 也理所应当肩负起与其他技术『桥接』的职责，并且作为移动不可缺少的一部分，任何一个移动操作系统中都包含可运行 JavaScript 的容器，例如 WebView 和 JSCore。所以，运行 JavaScript 不用像运行其他语言时，要额外添加运行环境。因此，基于上面种种原因，JSBridge 应运而生。\nPhoneGap（Codova 的前身）作为 Hybrid 鼻祖框架，应该是最先被开发者广泛认知的 JSBridge 的应用场景；而对于 JSBridge 的应用在国内真正兴盛起来，则是因为杀手级应用微信的出现，主要用途是在网页中通过 JSBridge 设置分享内容。\n\n移动端混合开发中的 JSBridge，主要被应用在两种形式的技术方案上：\n\n基于 Web 的 Hybrid 解决方案：例如微信浏览器、各公司的 Hybrid 方案\n非基于 Web UI 但业务逻辑基于 JavaScript 的解决方案：例如 React-Native\n\n【注】：微信小程序基于 Web UI，但是为了追求运行效率，对 UI 展现逻辑和业务逻辑的 JavaScript 进行了隔离。因此小程序的技术方案介于上面描述的两种方式之间。\nJSBridge 的用途JSBridge 简单来讲，主要是 给 JavaScript 提供调用 Native 功能的接口，让混合开发中的『前端部分』可以方便地使用地址位置、摄像头甚至支付等 Native 功能。\n既然是『简单来讲』，那么 JSBridge 的用途肯定不只『调用 Native 功能』这么简单宽泛。实际上，JSBridge 就像其名称中的『Bridge』的意义一样，是 Native 和非 Native 之间的桥梁，它的核心是 构建 Native 和非 Native 间消息通信的通道，而且是 双向通信的通道。\n\n所谓 双向通信的通道:\n\nJS 向 Native 发送消息 : 调用相关功能、通知 Native 当前 JS 的相关状态等。\nNative 向 JS 发送消息 : 回溯调用结果、消息推送、通知 JS 当前 Native 的状态等。\n\n这里有些同学有疑问了：消息都是单向的，那么调用 Native 功能时 Callback 怎么实现的？对于这个问题，在下一节里会给出解释。\nJSBridge 的实现原理JavaScript 是运行在一个单独的 JS Context 中（例如，WebView 的  Webkit 引擎、JSCore）。由于这些 Context 与原生运行环境的天然隔离，我们可以将这种情况与 RPC（Remote Procedure Call，远程过程调用）通信进行类比，将 Native 与 JavaScript 的每次互相调用看做一次 RPC 调用。如此一来我们可以按照通常的 RPC 方式来进行设计和实现。\n\n在 JSBridge 的设计中，可以把前端看做 RPC 的客户端，把 Native 端看做 RPC 的服务器端，从而 JSBridge 要实现的主要逻辑就出现了：通信调用（Native 与 JS 通信） 和 句柄解析调用。（如果你是个前端，而且并不熟悉 RPC 的话，你也可以把这个流程类比成 JSONP 的流程）\n通过以上的分析，可以清楚地知晓 JSBridge 主要的功能和职责，接下来就以 Hybrid 方案 为案例从这几点来剖析 JSBridge 的实现原理。\nJSBridge 的通信原理Hybrid 方案是基于 WebView 的，JavaScript 执行在 WebView 的 Webkit 引擎中。因此，Hybrid 方案中 JSBridge 的通信原理会具有一些 Web 特性。\nJavaScript 调用 NativeJavaScript 调用 Native 的方式，主要有两种：注入 API 和 拦截 URL SCHEME。\n注入API注入 API 方式的主要原理是，通过 WebView 提供的接口，向 JavaScript 的 Context（window）中注入对象或者方法，让 JavaScript 调用时，直接执行相应的 Native 代码逻辑，达到 JavaScript 调用 Native 的目的。\n对于 iOS 的 UIWebView，实例如下：\n12345JSContext *context = [uiWebView valueForKeyPath:@&quot;documentView.webView.mainFrame.javaScriptContext&quot;];context[@&quot;postBridgeMessage&quot;] = ^(NSArray&lt;NSArray *&gt; *calls) &#123;    // Native 逻辑&#125;;\n前端调用方式：\n1window.postBridgeMessage(message);\n对于 iOS 的 WKWebView 可以用以下方式：\n123456789101112131415161718192021222324@interface WKWebVIewVC ()&lt;WKScriptMessageHandler&gt;@implementation WKWebVIewVC- (void)viewDidLoad &#123;    [super viewDidLoad];    WKWebViewConfiguration* configuration = [[WKWebViewConfiguration alloc] init];    configuration.userContentController = [[WKUserContentController alloc] init];    WKUserContentController *userCC = configuration.userContentController;    // 注入对象，前端调用其方法时，Native 可以捕获到    [userCC addScriptMessageHandler:self name:@&quot;nativeBridge&quot;];    WKWebView wkWebView = [[WKWebView alloc] initWithFrame:self.view.frame configuration:configuration];    // TODO 显示 WebView&#125;- (void)userContentController:(WKUserContentController *)userContentController didReceiveScriptMessage:(WKScriptMessage *)message &#123;    if ([message.name isEqualToString:@&quot;nativeBridge&quot;]) &#123;        NSLog(@&quot;前端传递的数据 %@: &quot;,message.body);        // Native 逻辑    &#125;&#125;\n前端调用方式：\n1window.webkit.messageHandlers.nativeBridge.postMessage(message);\n对于 Android 可以采用下面的方式：\n1234567891011121314151617181920212223242526272829public class JavaScriptInterfaceDemoActivity extends Activity &#123;\tprivate WebView Wv;    @Override    public void onCreate(Bundle savedInstanceState) &#123;        super.onCreate(savedInstanceState);        Wv = (WebView)findViewById(R.id.webView);        final JavaScriptInterface myJavaScriptInterface = new JavaScriptInterface(this);        Wv.getSettings().setJavaScriptEnabled(true);        Wv.addJavascriptInterface(myJavaScriptInterface, \"nativeBridge\");        // TODO 显示 WebView    &#125;    public class JavaScriptInterface &#123;         Context mContext;         JavaScriptInterface(Context c) &#123;             mContext = c;         &#125;         public void postMessage(String webMessage)&#123;             // Native 逻辑         &#125;     &#125;&#125;\n前端调用方式：\n1window.nativeBridge.postMessage(message);\n在 4.2 之前，Android 注入 JavaScript 对象的接口是 addJavascriptInterface，但是这个接口有漏洞，可以被不法分子利用，危害用户的安全，因此在 4.2 中引入新的接口 @JavascriptInterface（上面代码中使用的）来替代这个接口，解决安全问题。所以 Android 注入对对象的方式是 有兼容性问题的。（4.2 之前很多方案都采用拦截 prompt 的方式来实现，因为篇幅有限，这里就不展开了。）\n拦截 URL SCHEME先解释一下 URL SCHEME：URL SCHEME是一种类似于url的链接，是为了方便app直接互相调用设计的，形式和普通的 url 近似，主要区别是 protocol 和 host 一般是自定义的，例如: qunarhy://hy/url?url=http://ymfe.tech，protocol 是 qunarhy，host 则是 hy。\n拦截 URL SCHEME 的主要流程是：Web 端通过某种方式（例如 iframe.src）发送 URL Scheme 请求，之后 Native 拦截到请求并根据 URL SCHEME（包括所带的参数）进行相关操作。\n在时间过程中，这种方式有一定的 缺陷：\n\n使用 iframe.src 发送 URL SCHEME 会有 url 长度的隐患。\n创建请求，需要一定的耗时，比注入 API 的方式调用同样的功能，耗时会较长。\n\n但是之前为什么很多方案使用这种方式呢？因为它 支持 iOS6。而现在的大环境下，iOS6 占比很小，基本上可以忽略，所以并不推荐为了 iOS6 使用这种 并不优雅 的方式。\n【注】：有些方案为了规避 url 长度隐患的缺陷，在 iOS 上采用了使用 Ajax 发送同域请求的方式，并将参数放到 head 或 body 里。这样，虽然规避了 url 长度的隐患，但是 WKWebView 并不支持这样的方式。\n【注2】：为什么选择 iframe.src 不选择 locaiton.href ？因为如果通过 location.href 连续调用 Native，很容易丢失一些调用。\nNative 调用 JavaScript相比于 JavaScript 调用 Native， Native 调用 JavaScript 较为简单，毕竟不管是 iOS 的 UIWebView 还是 WKWebView，还是 Android 的 WebView 组件，都以子组件的形式存在于 View/Activity 中，直接调用相应的 API 即可。\nNative 调用 JavaScript，其实就是执行拼接 JavaScript 字符串，从外部调用 JavaScript 中的方法，因此 JavaScript 的方法必须在全局的 window 上。（闭包里的方法，JavaScript 自己都调用不了，更不用想让 Native 去调用了）\n对于 iOS 的 UIWebView，示例如下：\n1result = [uiWebview stringByEvaluatingJavaScriptFromString:javaScriptString];\n对于 iOS 的 WKWebView，示例如下：\n1[wkWebView evaluateJavaScript:javaScriptString completionHandler:completionHandler];\n对于 Android，在 Kitkat（4.4）之前并没有提供 iOS 类似的调用方式，只能用 loadUrl 一段 JavaScript 代码，来实现：\n1webView.loadUrl(\"javascript:\" + javaScriptString);\n而 Kitkat 之后的版本，也可以用 evaluateJavascript 方法实现：\n123456webView.evaluateJavascript(javaScriptString, new ValueCallback&lt;String&gt;() &#123;    @Override    public void onReceiveValue(String value) &#123;    &#125;&#125;);\n【注】：使用 loadUrl 的方式，并不能获取 JavaScript 执行后的结果。\n通信原理小总结通信原理是 JSBridge 实现的核心，实现方式可以各种各样，但是万变不离其宗。这里，笔者推荐的实现方式如下：\n\nJavaScript 调用 Native 推荐使用 注入 API 的方式（iOS6 忽略，Android 4.2以下使用 WebViewClient 的 onJsPrompt 方式）。\nNative 调用 JavaScript 则直接执行拼接好的 JavaScript 代码即可。\n\n对于其他方式，诸如 React Native、微信小程序 的通信方式都与上描述的近似，并根据实际情况进行优化。\n以 React Native 的 iOS 端举例：JavaScript 运行在 JSCore 中，实际上可以与上面的方式一样，利用注入 API 来实现 JavaScript 调用 Native 功能。不过 React Native 并没有设计成 JavaScript 直接调用 Object-C，而是 为了与 Native 开发里事件响应机制一致，设计成 需要在 Object-C 去调 JavaScript 时才通过返回值触发调用。原理基本一样，只是实现方式不同。\n当然不仅仅 iOS 和 Android，其他手机操作系统也用相应的 API，例如 WMP（Win 10）下可以用 window.external.notify 和 WebView.InvokeScript/InvokeScriptAsync 进行双向通信。其他系统也类似。\nJSBridge 接口实现从上面的剖析中，可以得知，JSBridge 的接口主要功能有两个：调用 Native（给 Native 发消息） 和 接被 Native 调用（接收 Native 消息）。因此，JSBridge 可以设计如下：\n12345678910window.JSBridge = &#123;    // 调用 Native    invoke: function(msg) &#123;        // 判断环境，获取不同的 nativeBridge        nativeBridge.postMessage(msg);    &#125;,    receiveMessage: function(msg) &#123;        // 处理 msg    &#125;&#125;;\n在上面的文章中，提到过 RPC 中有一个非常重要的环节是 句柄解析调用 ，这点在 JSBridge 中体现为 句柄与功能对应关系。同时，我们将句柄抽象为 桥名（BridgeName），最终演化为 一个 BridgeName 对应一个 Native 功能或者一类 Native 消息。 基于此点，JSBridge 的实现可以优化为如下：\n123456789101112131415window.JSBridge = &#123;    // 调用 Native    invoke: function(bridgeName, data) &#123;        // 判断环境，获取不同的 nativeBridge        nativeBridge.postMessage(&#123;            bridgeName: bridgeName,            data: data || &#123;&#125;        &#125;);    &#125;,    receiveMessage: function(msg) &#123;        var bridgeName = msg.bridgeName,            data = msg.data || &#123;&#125;;        // 具体逻辑    &#125;&#125;;\nJSBridge 大概的雏形出现了。现在终于可以着手解决这个问题了：消息都是单向的，那么调用 Native 功能时 Callback 怎么实现的？\n对于 JSBridge 的 Callback ，其实就是 RPC 框架的回调机制。当然也可以用更简单的 JSONP 机制解释：\n\n当发送 JSONP 请求时，url 参数里会有 callback 参数，其值是 当前页面唯一 的，而同时以此参数值为 key 将回调函数存到 window 上，随后，服务器返回 script 中，也会以此参数值作为句柄，调用相应的回调函数。\n\n由此可见，callback 参数这个 唯一标识 是这个回调逻辑的关键。这样，我们可以参照这个逻辑来实现 JSBridge：用一个自增的唯一 id，来标识并存储回调函数，并把此 id 以参数形式传递给 Native，而 Native 也以此 id 作为回溯的标识。这样，即可实现 Callback 回调逻辑。\n1234567891011121314151617181920212223242526272829303132(function () &#123;    var id = 0,        callbacks = &#123;&#125;;    window.JSBridge = &#123;        // 调用 Native        invoke: function(bridgeName, callback, data) &#123;            // 判断环境，获取不同的 nativeBridge            var thisId = id ++; // 获取唯一 id            callbacks[thisId] = callback; // 存储 Callback            nativeBridge.postMessage(&#123;                bridgeName: bridgeName,                data: data || &#123;&#125;,                callbackId: thisId // 传到 Native 端            &#125;);        &#125;,        receiveMessage: function(msg) &#123;            var bridgeName = msg.bridgeName,                data = msg.data || &#123;&#125;,                callbackId = msg.callbackId; // Native 将 callbackId 原封不动传回            // 具体逻辑            // bridgeName 和 callbackId 不会同时存在            if (callbackId) &#123;                if (callbacks[callbackId]) &#123; // 找到相应句柄                    callbacks[callbackId](msg.data); // 执行调用                &#125;            &#125; else if (bridgeName) &#123;            &#125;        &#125;    &#125;;&#125;)();\n最后用同样的方式加上 Native 调用的回调逻辑，同时对代码进行一些优化，就大概实现了一个功能比较完整的 JSBridge。其代码如下：\n12345678910111213141516171819202122232425262728293031323334353637383940414243444546474849505152535455(function () &#123;    var id = 0,        callbacks = &#123;&#125;,        registerFuncs = &#123;&#125;;    window.JSBridge = &#123;        // 调用 Native        invoke: function(bridgeName, callback, data) &#123;            // 判断环境，获取不同的 nativeBridge            var thisId = id ++; // 获取唯一 id            callbacks[thisId] = callback; // 存储 Callback            nativeBridge.postMessage(&#123;                bridgeName: bridgeName,                data: data || &#123;&#125;,                callbackId: thisId // 传到 Native 端            &#125;);        &#125;,        receiveMessage: function(msg) &#123;            var bridgeName = msg.bridgeName,                data = msg.data || &#123;&#125;,                callbackId = msg.callbackId, // Native 将 callbackId 原封不动传回                responstId = msg.responstId;            // 具体逻辑            // bridgeName 和 callbackId 不会同时存在            if (callbackId) &#123;                if (callbacks[callbackId]) &#123; // 找到相应句柄                    callbacks[callbackId](msg.data); // 执行调用                &#125;            &#125; else if (bridgeName) &#123;                if (registerFuncs[bridgeName]) &#123; // 通过 bridgeName 找到句柄                    var ret = &#123;&#125;,                        flag = false;                    registerFuncs[bridgeName].forEach(function(callback) =&gt; &#123;                        callback(data, function(r) &#123;                            flag = true;                            ret = Object.assign(ret, r);                        &#125;);                    &#125;);                    if (flag) &#123;                        nativeBridge.postMessage(&#123; // 回调 Native                            responstId: responstId,                            ret: ret                        &#125;);                    &#125;                &#125;            &#125;        &#125;,        register: function(bridgeName, callback) &#123;            if (!registerFuncs[bridgeName])  &#123;                registerFuncs[bridgeName] = [];            &#125;            registerFuncs[bridgeName].push(callback); // 存储回调        &#125;    &#125;;&#125;)();\n当然，这段代码片段只是一个示例，主要用于剖析 JSBridge 的原理和流程，里面存在诸多省略和不完善的代码逻辑，读者们可以自行完善。\n【注】：这一节主要讲的是，JavaScript 端的 JSBridge 的实现，对于 Native 端涉及的并不多。在 Native 端配合实现 JSBridge 的 JavaScript 调用 Native 逻辑也很简单，主要的代码逻辑是：接收到 JavaScript 消息 =&gt; 解析参数，拿到 bridgeName、data 和 callbackId =&gt; 根据 bridgeName 找到功能方法，以 data 为参数执行 =&gt; 执行返回值和 callbackId 一起回传前端。 Native 调用 JavaScript 也同样简单，直接自动生成一个唯一的 ResponseId，并存储句柄，然后和 data 一起发送给前端即可。\nJSBridge 如何引用对于 JSBridge 的引用，常用有两种方式，各有利弊。\n由 Native 端进行注入注入方式和 Native 调用 JavaScript 类似，直接执行桥的全部代码。\n它的优点在于：桥的版本很容易与 Native 保持一致，Native 端不用对不同版本的 JSBridge 进行兼容；与此同时，它的缺点是：注入时机不确定，需要实现注入失败后重试的机制，保证注入的成功率，同时 JavaScript 端在调用接口时，需要优先判断 JSBridge 是否已经注入成功。\n由 JavaScript 端引用直接与 JavaScript 一起执行。\n与由 Native 端注入正好相反，它的优点在于：JavaScript 端可以确定 JSBridge 的存在，直接调用即可；缺点是：如果桥的实现方式有更改，JSBridge 需要兼容多版本的 Native Bridge 或者 Native Bridge 兼容多版本的 JSBridge。\n总结这篇文章主要剖析的 JSBridge 的实现及应用，包括 JavaScript 与 Native 间的通信原理，JSBridge 的 JavaScript 端实现 以及 引用方式，并给出了一些示例代码，希望对读者有一定的帮助。\n","dateCreated":"2017-04-26T00:00:00+08:00","dateModified":"2018-05-29T17:55:38+08:00","datePublished":"2017-04-26T00:00:00+08:00","description":"【导读】关于 JSBridge，绝大多数同学最早遇到的是微信的 WeiXinJSBridge（现在被封装成 JSSDK），各种 Web 页面可以通过 Bridge 调用微信提供的一些原生功能，为用户提供相关的功能。其实，JSBridge 很早就出现在软件开发中，在一些桌面软件中很早就运用了这样的形式，多用在通知、产品详情、广告等模块中，然后这些模块中，使用的是 Web UI，而相关按钮点击后，调用的是 Native 功能。现在移动端盛行，不管是 Hybrid 应用，还是 React-Native 都离不开 JSBridge，当然也包括在国内举足轻重的微信小程序。那么，JSBridge 到底是什么？它的出现是为了什么？它究竟是怎么实现的？在这篇文章中，会在移动混合开发的范畴内，将给大家带来 JSBridge 的深入剖析。","headline":"移动混合开发中的 JSBridge","image":["http://wx1.sinaimg.cn/mw690/71c50075ly1feyxr21wdkj20n905n74c.jpg"],"mainEntityOfPage":{"@type":"WebPage","@id":"http://e-lim.cn/2017-04-26-混合开发中的JSBridge/"},"publisher":{"@type":"Organization","name":"Edwon Lim","sameAs":["https://ymfe.org","https://ws3.sinaimg.cn/large/006tKfTcly1frsdntpo4aj30jb0ich0m.jpg","https://weibo.com/edwonlim","https://github.com/EdwonLim","mailto:edwon.lim@gmail.com"],"image":"https://tva4.sinaimg.cn/crop.0.0.512.512.180/71c50075jw8eprl9kjt8ej20e80e80tc.jpg","logo":{"@type":"ImageObject","url":"https://tva4.sinaimg.cn/crop.0.0.512.512.180/71c50075jw8eprl9kjt8ej20e80e80tc.jpg"}},"url":"http://e-lim.cn/2017-04-26-混合开发中的JSBridge/","keywords":"Mobile, Hybrid, Bridge","thumbnailUrl":"http://wx1.sinaimg.cn/mw690/71c50075ly1feyxr21wdkj20n905n74c.jpg"}</script>
+    <meta name="description" content="【导读】关于 JSBridge，绝大多数同学最早遇到的是微信的 WeiXinJSBridge（现在被封装成 JSSDK），各种 Web 页面可以通过 Bridge 调用微信提供的一些原生功能，为用户提供相关的功能。其实，JSBridge 很早就出现在软件开发中，在一些桌面软件中很早就运用了这样的形式，多用在通知、产品详情、广告等模块中，然后这些模块中，使用的是 Web UI，而相关按钮点击后，调用">
+<meta name="keywords" content="Mobile,Hybrid,Bridge">
+<meta property="og:type" content="blog">
+<meta property="og:title" content="移动混合开发中的 JSBridge">
+<meta property="og:url" content="http://e-lim.cn/2017-04-26-混合开发中的JSBridge/index.html">
+<meta property="og:site_name" content="E-Lim">
+<meta property="og:description" content="【导读】关于 JSBridge，绝大多数同学最早遇到的是微信的 WeiXinJSBridge（现在被封装成 JSSDK），各种 Web 页面可以通过 Bridge 调用微信提供的一些原生功能，为用户提供相关的功能。其实，JSBridge 很早就出现在软件开发中，在一些桌面软件中很早就运用了这样的形式，多用在通知、产品详情、广告等模块中，然后这些模块中，使用的是 Web UI，而相关按钮点击后，调用">
+<meta property="og:locale" content="zh-cn">
+<meta property="og:image" content="https://ws1.sinaimg.cn/large/006cGJIjly1fiza4vwhtkj30b40640sz.jpg">
+<meta property="og:image" content="http://wx2.sinaimg.cn/mw690/71c50075ly1feyt6lzpb5j208c03mq4d.jpg">
+<meta property="og:image" content="http://wx1.sinaimg.cn/mw690/71c50075ly1feyxr21wdkj20n905n74c.jpg">
+<meta property="og:image" content="http://wx4.sinaimg.cn/mw690/71c50075ly1fez44p2jolj20a409dwet.jpg">
+<meta property="og:updated_time" content="2018-05-29T09:55:38.049Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="移动混合开发中的 JSBridge">
+<meta name="twitter:description" content="【导读】关于 JSBridge，绝大多数同学最早遇到的是微信的 WeiXinJSBridge（现在被封装成 JSSDK），各种 Web 页面可以通过 Bridge 调用微信提供的一些原生功能，为用户提供相关的功能。其实，JSBridge 很早就出现在软件开发中，在一些桌面软件中很早就运用了这样的形式，多用在通知、产品详情、广告等模块中，然后这些模块中，使用的是 Web UI，而相关按钮点击后，调用">
+<meta name="twitter:image" content="https://ws1.sinaimg.cn/large/006cGJIjly1fiza4vwhtkj30b40640sz.jpg">
+    
+    
+        
+    
+    
+        <meta property="og:image" content="https://tva4.sinaimg.cn/crop.0.0.512.512.180/71c50075jw8eprl9kjt8ej20e80e80tc.jpg"/>
+    
+    
+        <meta property="og:image" content="http://wx1.sinaimg.cn/mw690/71c50075ly1feyxr21wdkj20n905n74c.jpg"/>
+        <meta class="swiftype" name="image" data-type="enum" content="http://wx1.sinaimg.cn/mw690/71c50075ly1feyxr21wdkj20n905n74c.jpg" />
+    
+    
+    
+    <!--STYLES-->
+    <link rel="stylesheet" href="/assets/css/style-1udptkpril81ozu8ifd8zpujn7ipu7lefxsiu5gxx0dpnzntdx6dusvki3ao.min.css">
+    <!--STYLES END-->
+    
+
+    
+</head>
+
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
+
+
+    
+        
+            
+        
+    
+
+<header id="header" data-behavior="4">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <div class="header-title">
+        <a class="header-title-link" href="/ ">E-Lim</a>
+    </div>
+    
+        
+            <a  class="header-right-picture "
+                href="#about">
+        
+        
+            <img class="header-picture" src="https://tva4.sinaimg.cn/crop.0.0.512.512.180/71c50075jw8eprl9kjt8ej20e80e80tc.jpg" alt="作者的图片"/>
+        
+        </a>
+    
+</header>
+
+            <style type="text/css">
+    #sidebar .sidebar-button-link:focus {
+        outline: none;
+    }
+</style>
+<!-- Define author's picture -->
+
+
+
+        
+    
+
+<nav id="sidebar" data-behavior="4">
+    <div class="sidebar-container">
+        
+            <div class="sidebar-profile">
+                <a href="/#about">
+                    <img class="sidebar-profile-picture" src="https://tva4.sinaimg.cn/crop.0.0.512.512.180/71c50075jw8eprl9kjt8ej20e80e80tc.jpg" alt="作者的图片"/>
+                </a>
+                <h4 class="sidebar-profile-name">Edwon Lim</h4>
+                
+                    <h5 class="sidebar-profile-bio"><p>性格决定命运，细节决定成败</p>
+</h5>
+                
+            </div>
+        
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a  class="sidebar-button-link "
+                             href="/ "
+                            
+                            title="首页"
+                        >
+                    
+                        <i class="sidebar-button-icon fa fa-lg fa-home" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">首页</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a  class="sidebar-button-link "
+                             href="/all-categories"
+                            
+                            title="分类"
+                        >
+                    
+                        <i class="sidebar-button-icon fa fa-lg fa-bookmark" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">分类</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a  class="sidebar-button-link "
+                             href="/all-tags"
+                            
+                            title="标签"
+                        >
+                    
+                        <i class="sidebar-button-icon fa fa-lg fa-tags" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">标签</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a  class="sidebar-button-link "
+                             href="/all-archives"
+                            
+                            title="归档"
+                        >
+                    
+                        <i class="sidebar-button-icon fa fa-lg fa-archive" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">归档</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a  class="sidebar-button-link "
+                             href="#about"
+                            
+                            title="关于"
+                        >
+                    
+                        <i class="sidebar-button-icon fa fa-lg fa-question" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">关于</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a  class="sidebar-button-link " href="https://ymfe.org" target="_blank" rel="noopener" title="YMFE">
+                    
+                        <i class="sidebar-button-icon fa fa-lg fa-users" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">YMFE</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a  class="sidebar-button-link " href="https://ws3.sinaimg.cn/large/006tKfTcly1frsdntpo4aj30jb0ich0m.jpg" target="_blank" rel="noopener" title="WeChat">
+                    
+                        <i class="sidebar-button-icon fa fa-lg fa-wechat" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">WeChat</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a  class="sidebar-button-link " href="https://weibo.com/edwonlim" target="_blank" rel="noopener" title="Weibo">
+                    
+                        <i class="sidebar-button-icon fa fa-lg fa-weibo" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">Weibo</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a  class="sidebar-button-link " href="https://github.com/EdwonLim" target="_blank" rel="noopener" title="GitHub">
+                    
+                        <i class="sidebar-button-icon fa fa-lg fa-github" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">GitHub</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a  class="sidebar-button-link " href="mailto:edwon.lim@gmail.com" target="_blank" rel="noopener" title="邮箱">
+                    
+                        <i class="sidebar-button-icon fa fa-lg fa-envelope-o" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">邮箱</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+    </div>
+</nav>
+
+            
+            <div id="main" data-behavior="4"
+                 class="
+                        hasCoverMetaIn
+                        ">
+                <style type="text/css">
+    .post-action-btn:focus {
+        outline: none;
+    }
+</style>
+
+<article class="post">
+    
+    
+        <div class="post-header main-content-wrap text-left">
+    
+        <h1 class="post-title">
+            移动混合开发中的 JSBridge
+        </h1>
+    
+    
+        <div class="post-meta">
+    <time datetime="2017-04-26T00:00:00+08:00">
+	
+		    4月 26, 2017
+    	
+    </time>
+    
+        <span>发布在 </span>
+        《
+    <a class="category-link" href="/categories/大前端技术/">大前端技术</a>
+
+》
+    
+</div>
+
+    
+</div>
+
+    
+    <style type="text/css">
+        .post .post-content img {
+            margin: 0 auto;
+        }
+    </style>
+    <div class="post-content markdown">
+        <div class="main-content-wrap">
+            <p>【导读】关于 JSBridge，绝大多数同学最早遇到的是微信的 WeiXinJSBridge（现在被封装成 JSSDK），各种 Web 页面可以通过 Bridge 调用微信提供的一些原生功能，为用户提供相关的功能。其实，JSBridge 很早就出现在软件开发中，在一些桌面软件中很早就运用了这样的形式，多用在通知、产品详情、广告等模块中，然后这些模块中，使用的是 Web UI，而相关按钮点击后，调用的是 Native 功能。现在移动端盛行，不管是 Hybrid 应用，还是 React-Native 都离不开 JSBridge，当然也包括在国内举足轻重的微信小程序。那么，JSBridge 到底是什么？它的出现是为了什么？它究竟是怎么实现的？在这篇文章中，会在移动混合开发的范畴内，将给大家带来 JSBridge 的深入剖析。<a id="more"></a></p>
+<p><img src="https://ws1.sinaimg.cn/large/006cGJIjly1fiza4vwhtkj30b40640sz.jpg" alt=""></p>
+<h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>有些童鞋听到 JSBridge 这个名词，就是觉得非常高上大，有了它 Web 和 Native 可以进行交互，就像『进化药水』，让 Web 摇身一变，成为移动战场的『上将一名』。其实并非如此，JSBridge 其实真是一个很简单的东西，更多的是一种形式、一种思想。</p>
+<h1 id="JSBridge-的起源"><a href="#JSBridge-的起源" class="headerlink" title="JSBridge 的起源"></a>JSBridge 的起源</h1><p>为什么是 JSBridge ？而不是 PythonBridge 或是 RubyBridge ？</p>
+<p>当然不是因为 JavaScript 语言高人一等（虽然斯坦福大学已经把算法导论的语言从 Java 改成 JavaScript，小得意一下，嘻嘻），主要的原因还是因为 JavaScript 主要载体 Web 是当前世界上的 <strong>最易编写</strong> 、 <strong>最易维护</strong> 、 <strong>最易部署</strong> 的 UI 构建方式。工程师可以用很简单的 HTML 标签和 CSS 样式快速的构建出一个页面，并且在服务端部署后，用户不需要主动更新，就能看到最新的 UI 展现。</p>
+<p>因此，<strong>开发维护成本</strong> 和 <strong>更新成本</strong> 较低的 Web 技术成为混合开发中几乎不二的选择，而作为 Web 技术逻辑核心的 JavaScript 也理所应当肩负起与其他技术『桥接』的职责，并且作为移动不可缺少的一部分，任何一个移动操作系统中都包含可运行 JavaScript 的容器，例如 WebView 和 JSCore。所以，运行 JavaScript 不用像运行其他语言时，要额外添加运行环境。因此，基于上面种种原因，JSBridge 应运而生。</p>
+<p>PhoneGap（Codova 的前身）作为 Hybrid 鼻祖框架，应该是最先被开发者广泛认知的 JSBridge 的应用场景；而对于 JSBridge 的应用在国内真正兴盛起来，则是因为杀手级应用微信的出现，主要用途是在网页中通过 JSBridge 设置分享内容。</p>
+<p><img src="http://wx2.sinaimg.cn/mw690/71c50075ly1feyt6lzpb5j208c03mq4d.jpg" alt=""></p>
+<p>移动端混合开发中的 JSBridge，主要被应用在两种形式的技术方案上：</p>
+<ul>
+<li>基于 Web 的 Hybrid 解决方案：例如微信浏览器、各公司的 Hybrid 方案</li>
+<li>非基于 Web UI 但业务逻辑基于 JavaScript 的解决方案：例如 React-Native</li>
+</ul>
+<p>【注】：微信小程序基于 Web UI，但是为了追求运行效率，对 UI 展现逻辑和业务逻辑的 JavaScript 进行了隔离。因此小程序的技术方案介于上面描述的两种方式之间。</p>
+<h1 id="JSBridge-的用途"><a href="#JSBridge-的用途" class="headerlink" title="JSBridge 的用途"></a>JSBridge 的用途</h1><p>JSBridge 简单来讲，主要是 <strong>给 JavaScript 提供调用 Native 功能的接口</strong>，让混合开发中的『前端部分』可以方便地使用地址位置、摄像头甚至支付等 Native 功能。</p>
+<p>既然是『简单来讲』，那么 JSBridge 的用途肯定不只『调用 Native 功能』这么简单宽泛。实际上，JSBridge 就像其名称中的『Bridge』的意义一样，是 Native 和非 Native 之间的桥梁，它的核心是 <strong>构建 Native 和非 Native 间消息通信的通道</strong>，而且是 <strong>双向通信的通道</strong>。</p>
+<p><img src="http://wx1.sinaimg.cn/mw690/71c50075ly1feyxr21wdkj20n905n74c.jpg" alt=""></p>
+<p>所谓 <strong>双向通信的通道</strong>:</p>
+<ul>
+<li>JS 向 Native 发送消息 : 调用相关功能、通知 Native 当前 JS 的相关状态等。</li>
+<li>Native 向 JS 发送消息 : 回溯调用结果、消息推送、通知 JS 当前 Native 的状态等。</li>
+</ul>
+<p>这里有些同学有疑问了：<u><em>消息都是单向的，那么调用 Native 功能时 Callback 怎么实现的？</em></u><br>对于这个问题，在下一节里会给出解释。</p>
+<h1 id="JSBridge-的实现原理"><a href="#JSBridge-的实现原理" class="headerlink" title="JSBridge 的实现原理"></a>JSBridge 的实现原理</h1><p>JavaScript 是运行在一个单独的 JS Context 中（例如，WebView 的  Webkit 引擎、JSCore）。由于这些 Context 与原生运行环境的天然隔离，我们可以将这种情况与 RPC（Remote Procedure Call，远程过程调用）通信进行类比，将 Native 与 JavaScript 的每次互相调用看做一次 RPC 调用。如此一来我们可以按照通常的 RPC 方式来进行设计和实现。</p>
+<p><img src="http://wx4.sinaimg.cn/mw690/71c50075ly1fez44p2jolj20a409dwet.jpg" alt=""></p>
+<p>在 JSBridge 的设计中，可以把前端看做 RPC 的客户端，把 Native 端看做 RPC 的服务器端，从而 JSBridge 要实现的主要逻辑就出现了：<strong>通信调用（Native 与 JS 通信）</strong> 和 <strong>句柄解析调用</strong>。（如果你是个前端，而且并不熟悉 RPC 的话，你也可以把这个流程类比成 JSONP 的流程）</p>
+<p>通过以上的分析，可以清楚地知晓 JSBridge 主要的功能和职责，接下来就以 <strong>Hybrid 方案</strong> 为案例从这几点来剖析 JSBridge 的实现原理。</p>
+<h2 id="JSBridge-的通信原理"><a href="#JSBridge-的通信原理" class="headerlink" title="JSBridge 的通信原理"></a>JSBridge 的通信原理</h2><p>Hybrid 方案是基于 WebView 的，JavaScript 执行在 WebView 的 Webkit 引擎中。因此，Hybrid 方案中 JSBridge 的通信原理会具有一些 Web 特性。</p>
+<h3 id="JavaScript-调用-Native"><a href="#JavaScript-调用-Native" class="headerlink" title="JavaScript 调用 Native"></a>JavaScript 调用 Native</h3><p>JavaScript 调用 Native 的方式，主要有两种：<strong>注入 API</strong> 和 <strong>拦截 URL SCHEME</strong>。</p>
+<h4 id="注入API"><a href="#注入API" class="headerlink" title="注入API"></a>注入API</h4><p>注入 API 方式的主要原理是，通过 WebView 提供的接口，向 JavaScript 的 Context（window）中注入对象或者方法，让 JavaScript 调用时，直接执行相应的 Native 代码逻辑，达到 JavaScript 调用 Native 的目的。</p>
+<p>对于 iOS 的 UIWebView，实例如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">JSContext *context = [uiWebView valueForKeyPath:@&quot;documentView.webView.mainFrame.javaScriptContext&quot;];</span><br><span class="line"></span><br><span class="line">context[@&quot;postBridgeMessage&quot;] = ^(NSArray&lt;NSArray *&gt; *calls) &#123;</span><br><span class="line">    // Native 逻辑</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>前端调用方式：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">window</span>.postBridgeMessage(message);</span><br></pre></td></tr></table></figure>
+<p>对于 iOS 的 WKWebView 可以用以下方式：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">@interface WKWebVIewVC ()&lt;WKScriptMessageHandler&gt;</span><br><span class="line"></span><br><span class="line">@implementation WKWebVIewVC</span><br><span class="line"></span><br><span class="line">- (void)viewDidLoad &#123;</span><br><span class="line">    [super viewDidLoad];</span><br><span class="line"></span><br><span class="line">    WKWebViewConfiguration* configuration = [[WKWebViewConfiguration alloc] init];</span><br><span class="line">    configuration.userContentController = [[WKUserContentController alloc] init];</span><br><span class="line">    WKUserContentController *userCC = configuration.userContentController;</span><br><span class="line">    // 注入对象，前端调用其方法时，Native 可以捕获到</span><br><span class="line">    [userCC addScriptMessageHandler:self name:@&quot;nativeBridge&quot;];</span><br><span class="line"></span><br><span class="line">    WKWebView wkWebView = [[WKWebView alloc] initWithFrame:self.view.frame configuration:configuration];</span><br><span class="line"></span><br><span class="line">    // TODO 显示 WebView</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (void)userContentController:(WKUserContentController *)userContentController didReceiveScriptMessage:(WKScriptMessage *)message &#123;</span><br><span class="line">    if ([message.name isEqualToString:@&quot;nativeBridge&quot;]) &#123;</span><br><span class="line">        NSLog(@&quot;前端传递的数据 %@: &quot;,message.body);</span><br><span class="line">        // Native 逻辑</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>前端调用方式：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">window</span>.webkit.messageHandlers.nativeBridge.postMessage(message);</span><br></pre></td></tr></table></figure>
+<p>对于 Android 可以采用下面的方式：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">JavaScriptInterfaceDemoActivity</span> <span class="keyword">extends</span> <span class="title">Activity</span> </span>&#123;</span><br><span class="line">	<span class="keyword">private</span> WebView Wv;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onCreate</span><span class="params">(Bundle savedInstanceState)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">super</span>.onCreate(savedInstanceState);</span><br><span class="line"></span><br><span class="line">        Wv = (WebView)findViewById(R.id.webView);</span><br><span class="line">        <span class="keyword">final</span> JavaScriptInterface myJavaScriptInterface = <span class="keyword">new</span> JavaScriptInterface(<span class="keyword">this</span>);</span><br><span class="line"></span><br><span class="line">        Wv.getSettings().setJavaScriptEnabled(<span class="keyword">true</span>);</span><br><span class="line">        Wv.addJavascriptInterface(myJavaScriptInterface, <span class="string">"nativeBridge"</span>);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// TODO 显示 WebView</span></span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">JavaScriptInterface</span> </span>&#123;</span><br><span class="line">         Context mContext;</span><br><span class="line"></span><br><span class="line">         JavaScriptInterface(Context c) &#123;</span><br><span class="line">             mContext = c;</span><br><span class="line">         &#125;</span><br><span class="line"></span><br><span class="line">         <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">postMessage</span><span class="params">(String webMessage)</span></span>&#123;</span><br><span class="line">             <span class="comment">// Native 逻辑</span></span><br><span class="line">         &#125;</span><br><span class="line">     &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>前端调用方式：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">window</span>.nativeBridge.postMessage(message);</span><br></pre></td></tr></table></figure>
+<p>在 4.2 之前，Android 注入 JavaScript 对象的接口是 addJavascriptInterface，但是这个接口有漏洞，可以被不法分子利用，危害用户的安全，因此在 4.2 中引入新的接口 @JavascriptInterface（上面代码中使用的）来替代这个接口，解决安全问题。所以 Android 注入对对象的方式是 <strong>有兼容性问题的</strong>。（4.2 之前很多方案都采用拦截 prompt 的方式来实现，因为篇幅有限，这里就不展开了。）</p>
+<h4 id="拦截-URL-SCHEME"><a href="#拦截-URL-SCHEME" class="headerlink" title="拦截 URL SCHEME"></a>拦截 URL SCHEME</h4><p>先解释一下 URL SCHEME：URL SCHEME是一种类似于url的链接，是为了方便app直接互相调用设计的，形式和普通的 url 近似，主要区别是 protocol 和 host 一般是自定义的，例如: qunarhy://hy/url?url=<a href="http://ymfe.tech" target="_blank" rel="noopener">http://ymfe.tech</a>，protocol 是 qunarhy，host 则是 hy。</p>
+<p>拦截 URL SCHEME 的主要流程是：Web 端通过某种方式（例如 iframe.src）发送 URL Scheme 请求，之后 Native 拦截到请求并根据 URL SCHEME（包括所带的参数）进行相关操作。</p>
+<p>在时间过程中，这种方式有一定的 <strong>缺陷</strong>：</p>
+<ul>
+<li>使用 iframe.src 发送 URL SCHEME 会有 url 长度的隐患。</li>
+<li>创建请求，需要一定的耗时，比注入 API 的方式调用同样的功能，耗时会较长。</li>
+</ul>
+<p>但是之前为什么很多方案使用这种方式呢？因为它 <strong>支持 iOS6</strong>。而现在的大环境下，iOS6 占比很小，基本上可以忽略，所以并不推荐为了 iOS6 使用这种 <strong>并不优雅</strong> 的方式。</p>
+<p>【注】：有些方案为了规避 url 长度隐患的缺陷，在 iOS 上采用了使用 Ajax 发送同域请求的方式，并将参数放到 head 或 body 里。这样，虽然规避了 url 长度的隐患，但是 WKWebView 并不支持这样的方式。</p>
+<p>【注2】：为什么选择 iframe.src 不选择 locaiton.href ？因为如果通过 location.href 连续调用 Native，很容易丢失一些调用。</p>
+<h3 id="Native-调用-JavaScript"><a href="#Native-调用-JavaScript" class="headerlink" title="Native 调用 JavaScript"></a>Native 调用 JavaScript</h3><p>相比于 JavaScript 调用 Native， Native 调用 JavaScript 较为简单，毕竟不管是 iOS 的 UIWebView 还是 WKWebView，还是 Android 的 WebView 组件，都以子组件的形式存在于 View/Activity 中，直接调用相应的 API 即可。</p>
+<p>Native 调用 JavaScript，其实就是执行拼接 JavaScript 字符串，从外部调用 JavaScript 中的方法，因此 JavaScript 的方法必须在全局的 window 上。（闭包里的方法，JavaScript 自己都调用不了，更不用想让 Native 去调用了）</p>
+<p>对于 iOS 的 UIWebView，示例如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">result = [uiWebview stringByEvaluatingJavaScriptFromString:javaScriptString];</span><br></pre></td></tr></table></figure>
+<p>对于 iOS 的 WKWebView，示例如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[wkWebView evaluateJavaScript:javaScriptString completionHandler:completionHandler];</span><br></pre></td></tr></table></figure>
+<p>对于 Android，在 Kitkat（4.4）之前并没有提供 iOS 类似的调用方式，只能用 loadUrl 一段 JavaScript 代码，来实现：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">webView.loadUrl(<span class="string">"javascript:"</span> + javaScriptString);</span><br></pre></td></tr></table></figure>
+<p>而 Kitkat 之后的版本，也可以用 evaluateJavascript 方法实现：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">webView.evaluateJavascript(javaScriptString, <span class="keyword">new</span> ValueCallback&lt;String&gt;() &#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onReceiveValue</span><span class="params">(String value)</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+<p>【注】：使用 loadUrl 的方式，并不能获取 JavaScript 执行后的结果。</p>
+<h3 id="通信原理小总结"><a href="#通信原理小总结" class="headerlink" title="通信原理小总结"></a>通信原理小总结</h3><p>通信原理是 JSBridge 实现的核心，实现方式可以各种各样，但是万变不离其宗。这里，笔者推荐的实现方式如下：</p>
+<ul>
+<li>JavaScript 调用 Native 推荐使用 <strong>注入 API</strong> 的方式（iOS6 忽略，Android 4.2以下使用 WebViewClient 的 onJsPrompt 方式）。</li>
+<li>Native 调用 JavaScript 则直接执行拼接好的 JavaScript 代码即可。</li>
+</ul>
+<p>对于其他方式，诸如 React Native、微信小程序 的通信方式都与上描述的近似，并根据实际情况进行优化。</p>
+<p>以 React Native 的 iOS 端举例：JavaScript 运行在 JSCore 中，实际上可以与上面的方式一样，利用注入 API 来实现 JavaScript 调用 Native 功能。不过 React Native 并没有设计成 JavaScript 直接调用 Object-C，而是 <strong>为了与 Native 开发里事件响应机制一致</strong>，设计成 <strong>需要在 Object-C 去调 JavaScript 时才通过返回值触发调用</strong>。原理基本一样，只是实现方式不同。</p>
+<p>当然不仅仅 iOS 和 Android，其他手机操作系统也用相应的 API，例如 WMP（Win 10）下可以用 window.external.notify 和 WebView.InvokeScript/InvokeScriptAsync 进行双向通信。其他系统也类似。</p>
+<h2 id="JSBridge-接口实现"><a href="#JSBridge-接口实现" class="headerlink" title="JSBridge 接口实现"></a>JSBridge 接口实现</h2><p>从上面的剖析中，可以得知，JSBridge 的接口主要功能有两个：<strong>调用 Native（给 Native 发消息）</strong> 和 <strong>接被 Native 调用（接收 Native 消息）</strong>。因此，JSBridge 可以设计如下：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">window</span>.JSBridge = &#123;</span><br><span class="line">    <span class="comment">// 调用 Native</span></span><br><span class="line">    invoke: <span class="function"><span class="keyword">function</span>(<span class="params">msg</span>) </span>&#123;</span><br><span class="line">        <span class="comment">// 判断环境，获取不同的 nativeBridge</span></span><br><span class="line">        nativeBridge.postMessage(msg);</span><br><span class="line">    &#125;,</span><br><span class="line">    receiveMessage: <span class="function"><span class="keyword">function</span>(<span class="params">msg</span>) </span>&#123;</span><br><span class="line">        <span class="comment">// 处理 msg</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>在上面的文章中，提到过 RPC 中有一个非常重要的环节是 <strong>句柄解析调用</strong> ，这点在 JSBridge 中体现为 <strong>句柄与功能对应关系</strong>。同时，我们将句柄抽象为 <strong>桥名（BridgeName）</strong>，最终演化为 <strong>一个 BridgeName 对应一个 Native 功能或者一类 Native 消息</strong>。 基于此点，JSBridge 的实现可以优化为如下：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">window</span>.JSBridge = &#123;</span><br><span class="line">    <span class="comment">// 调用 Native</span></span><br><span class="line">    invoke: <span class="function"><span class="keyword">function</span>(<span class="params">bridgeName, data</span>) </span>&#123;</span><br><span class="line">        <span class="comment">// 判断环境，获取不同的 nativeBridge</span></span><br><span class="line">        nativeBridge.postMessage(&#123;</span><br><span class="line">            bridgeName: bridgeName,</span><br><span class="line">            data: data || &#123;&#125;</span><br><span class="line">        &#125;);</span><br><span class="line">    &#125;,</span><br><span class="line">    receiveMessage: <span class="function"><span class="keyword">function</span>(<span class="params">msg</span>) </span>&#123;</span><br><span class="line">        <span class="keyword">var</span> bridgeName = msg.bridgeName,</span><br><span class="line">            data = msg.data || &#123;&#125;;</span><br><span class="line">        <span class="comment">// 具体逻辑</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>JSBridge 大概的雏形出现了。现在终于可以着手解决这个问题了：<strong>消息都是单向的，那么调用 Native 功能时 Callback 怎么实现的？</strong></p>
+<p>对于 JSBridge 的 Callback ，其实就是 RPC 框架的回调机制。当然也可以用更简单的 JSONP 机制解释：</p>
+<blockquote>
+<p>当发送 JSONP 请求时，url 参数里会有 callback 参数，其值是 <strong>当前页面唯一</strong> 的，而同时以此参数值为 key 将回调函数存到 window 上，随后，服务器返回 script 中，也会以此参数值作为句柄，调用相应的回调函数。</p>
+</blockquote>
+<p>由此可见，callback 参数这个 <strong>唯一标识</strong> 是这个回调逻辑的关键。这样，我们可以参照这个逻辑来实现 JSBridge：用一个自增的唯一 id，来标识并存储回调函数，并把此 id 以参数形式传递给 Native，而 Native 也以此 id 作为回溯的标识。这样，即可实现 Callback 回调逻辑。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">(<span class="function"><span class="keyword">function</span> (<span class="params"></span>) </span>&#123;</span><br><span class="line">    <span class="keyword">var</span> id = <span class="number">0</span>,</span><br><span class="line">        callbacks = &#123;&#125;;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">window</span>.JSBridge = &#123;</span><br><span class="line">        <span class="comment">// 调用 Native</span></span><br><span class="line">        invoke: <span class="function"><span class="keyword">function</span>(<span class="params">bridgeName, callback, data</span>) </span>&#123;</span><br><span class="line">            <span class="comment">// 判断环境，获取不同的 nativeBridge</span></span><br><span class="line">            <span class="keyword">var</span> thisId = id ++; <span class="comment">// 获取唯一 id</span></span><br><span class="line">            callbacks[thisId] = callback; <span class="comment">// 存储 Callback</span></span><br><span class="line">            nativeBridge.postMessage(&#123;</span><br><span class="line">                bridgeName: bridgeName,</span><br><span class="line">                data: data || &#123;&#125;,</span><br><span class="line">                callbackId: thisId <span class="comment">// 传到 Native 端</span></span><br><span class="line">            &#125;);</span><br><span class="line">        &#125;,</span><br><span class="line">        receiveMessage: <span class="function"><span class="keyword">function</span>(<span class="params">msg</span>) </span>&#123;</span><br><span class="line">            <span class="keyword">var</span> bridgeName = msg.bridgeName,</span><br><span class="line">                data = msg.data || &#123;&#125;,</span><br><span class="line">                callbackId = msg.callbackId; <span class="comment">// Native 将 callbackId 原封不动传回</span></span><br><span class="line">            <span class="comment">// 具体逻辑</span></span><br><span class="line">            <span class="comment">// bridgeName 和 callbackId 不会同时存在</span></span><br><span class="line">            <span class="keyword">if</span> (callbackId) &#123;</span><br><span class="line">                <span class="keyword">if</span> (callbacks[callbackId]) &#123; <span class="comment">// 找到相应句柄</span></span><br><span class="line">                    callbacks[callbackId](msg.data); <span class="comment">// 执行调用</span></span><br><span class="line">                &#125;</span><br><span class="line">            &#125; <span class="keyword">else</span> <span class="keyword">if</span> (bridgeName) &#123;</span><br><span class="line"></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;;</span><br><span class="line">&#125;)();</span><br></pre></td></tr></table></figure>
+<p>最后用同样的方式加上 Native 调用的回调逻辑，同时对代码进行一些优化，就大概实现了一个功能比较完整的 JSBridge。其代码如下：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br></pre></td><td class="code"><pre><span class="line">(<span class="function"><span class="keyword">function</span> (<span class="params"></span>) </span>&#123;</span><br><span class="line">    <span class="keyword">var</span> id = <span class="number">0</span>,</span><br><span class="line">        callbacks = &#123;&#125;,</span><br><span class="line">        registerFuncs = &#123;&#125;;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">window</span>.JSBridge = &#123;</span><br><span class="line">        <span class="comment">// 调用 Native</span></span><br><span class="line">        invoke: <span class="function"><span class="keyword">function</span>(<span class="params">bridgeName, callback, data</span>) </span>&#123;</span><br><span class="line">            <span class="comment">// 判断环境，获取不同的 nativeBridge</span></span><br><span class="line">            <span class="keyword">var</span> thisId = id ++; <span class="comment">// 获取唯一 id</span></span><br><span class="line">            callbacks[thisId] = callback; <span class="comment">// 存储 Callback</span></span><br><span class="line">            nativeBridge.postMessage(&#123;</span><br><span class="line">                bridgeName: bridgeName,</span><br><span class="line">                data: data || &#123;&#125;,</span><br><span class="line">                callbackId: thisId <span class="comment">// 传到 Native 端</span></span><br><span class="line">            &#125;);</span><br><span class="line">        &#125;,</span><br><span class="line">        receiveMessage: <span class="function"><span class="keyword">function</span>(<span class="params">msg</span>) </span>&#123;</span><br><span class="line">            <span class="keyword">var</span> bridgeName = msg.bridgeName,</span><br><span class="line">                data = msg.data || &#123;&#125;,</span><br><span class="line">                callbackId = msg.callbackId, <span class="comment">// Native 将 callbackId 原封不动传回</span></span><br><span class="line">                responstId = msg.responstId;</span><br><span class="line">            <span class="comment">// 具体逻辑</span></span><br><span class="line">            <span class="comment">// bridgeName 和 callbackId 不会同时存在</span></span><br><span class="line">            <span class="keyword">if</span> (callbackId) &#123;</span><br><span class="line">                <span class="keyword">if</span> (callbacks[callbackId]) &#123; <span class="comment">// 找到相应句柄</span></span><br><span class="line">                    callbacks[callbackId](msg.data); <span class="comment">// 执行调用</span></span><br><span class="line">                &#125;</span><br><span class="line">            &#125; <span class="keyword">else</span> <span class="keyword">if</span> (bridgeName) &#123;</span><br><span class="line">                <span class="keyword">if</span> (registerFuncs[bridgeName]) &#123; <span class="comment">// 通过 bridgeName 找到句柄</span></span><br><span class="line">                    <span class="keyword">var</span> ret = &#123;&#125;,</span><br><span class="line">                        flag = <span class="literal">false</span>;</span><br><span class="line">                    registerFuncs[bridgeName].forEach(<span class="function"><span class="keyword">function</span>(<span class="params">callback</span>) =&gt; </span>&#123;</span><br><span class="line">                        callback(data, <span class="function"><span class="keyword">function</span>(<span class="params">r</span>) </span>&#123;</span><br><span class="line">                            flag = <span class="literal">true</span>;</span><br><span class="line">                            ret = <span class="built_in">Object</span>.assign(ret, r);</span><br><span class="line">                        &#125;);</span><br><span class="line">                    &#125;);</span><br><span class="line">                    <span class="keyword">if</span> (flag) &#123;</span><br><span class="line">                        nativeBridge.postMessage(&#123; <span class="comment">// 回调 Native</span></span><br><span class="line">                            responstId: responstId,</span><br><span class="line">                            ret: ret</span><br><span class="line">                        &#125;);</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;,</span><br><span class="line">        register: <span class="function"><span class="keyword">function</span>(<span class="params">bridgeName, callback</span>) </span>&#123;</span><br><span class="line">            <span class="keyword">if</span> (!registerFuncs[bridgeName])  &#123;</span><br><span class="line">                registerFuncs[bridgeName] = [];</span><br><span class="line">            &#125;</span><br><span class="line">            registerFuncs[bridgeName].push(callback); <span class="comment">// 存储回调</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;;</span><br><span class="line">&#125;)();</span><br></pre></td></tr></table></figure>
+<p>当然，这段代码片段只是一个示例，主要用于剖析 JSBridge 的原理和流程，里面存在诸多省略和不完善的代码逻辑，读者们可以自行完善。</p>
+<p>【注】：这一节主要讲的是，JavaScript 端的 JSBridge 的实现，对于 Native 端涉及的并不多。在 Native 端配合实现 JSBridge 的 JavaScript 调用 Native 逻辑也很简单，主要的代码逻辑是：接收到 JavaScript 消息 =&gt; 解析参数，拿到 bridgeName、data 和 callbackId =&gt; 根据 bridgeName 找到功能方法，以 data 为参数执行 =&gt; 执行返回值和 callbackId 一起回传前端。 Native 调用 JavaScript 也同样简单，直接自动生成一个唯一的 ResponseId，并存储句柄，然后和 data 一起发送给前端即可。</p>
+<h1 id="JSBridge-如何引用"><a href="#JSBridge-如何引用" class="headerlink" title="JSBridge 如何引用"></a>JSBridge 如何引用</h1><p>对于 JSBridge 的引用，常用有两种方式，各有利弊。</p>
+<h2 id="由-Native-端进行注入"><a href="#由-Native-端进行注入" class="headerlink" title="由 Native 端进行注入"></a>由 Native 端进行注入</h2><p>注入方式和 Native 调用 JavaScript 类似，直接执行桥的全部代码。</p>
+<p>它的优点在于：桥的版本很容易与 Native 保持一致，Native 端不用对不同版本的 JSBridge 进行兼容；与此同时，它的缺点是：注入时机不确定，需要实现注入失败后重试的机制，保证注入的成功率，同时 JavaScript 端在调用接口时，需要优先判断 JSBridge 是否已经注入成功。</p>
+<h2 id="由-JavaScript-端引用"><a href="#由-JavaScript-端引用" class="headerlink" title="由 JavaScript 端引用"></a>由 JavaScript 端引用</h2><p>直接与 JavaScript 一起执行。</p>
+<p>与由 Native 端注入正好相反，它的优点在于：JavaScript 端可以确定 JSBridge 的存在，直接调用即可；缺点是：如果桥的实现方式有更改，JSBridge 需要兼容多版本的 Native Bridge 或者 Native Bridge 兼容多版本的 JSBridge。</p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>这篇文章主要剖析的 JSBridge 的实现及应用，包括 <strong>JavaScript 与 Native 间的通信原理</strong>，<strong>JSBridge 的 JavaScript 端实现</strong> 以及 <strong>引用方式</strong>，并给出了一些示例代码，希望对读者有一定的帮助。</p>
+
+            
+
+        </div>
+    </div>
+    <div id="post-footer" class="post-footer main-content-wrap">
+        
+            <div class="post-footer-tags">
+                <span class="text-color-light text-small">标签</span><br/>
+                
+    <a class="tag tag--primary tag--small t-link" href="/tags/Bridge/">Bridge</a> <a class="tag tag--primary tag--small t-link" href="/tags/Hybrid/">Hybrid</a> <a class="tag tag--primary tag--small t-link" href="/tags/Mobile/">Mobile</a>
+
+            </div>
+        
+        
+            <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2017-09-20-写给前端应届生的职业规划建议/" data-tooltip="写给前端应届生的职业规划建议" aria-label="上一篇: 写给前端应届生的职业规划建议">
+                
+                    <i class="fa fa-angle-left" aria-hidden="true"></i>
+                    <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2017-01-01-Hy为了Native与Web彼此间的美好/" data-tooltip="Hy —— 为了 Native 与 Web 彼此间的美好" aria-label="下一篇: Hy —— 为了 Native 与 Web 彼此间的美好">
+                
+                    <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                    <i class="fa fa-angle-right" aria-hidden="true"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a class="post-action-btn btn btn--default btn-open-shareoptions" href="#btn-open-shareoptions" aria-label="Diesen Beitrag teilen">
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a class="post-action-btn btn btn--default" target="new" href="http://connect.qq.com/widget/shareqq/index.html?url=http://e-lim.cn/2017-04-26-混合开发中的JSBridge/&amp;title=移动混合开发中的 JSBridge" title="分享到 QQ">
+                    <i class="fa fa-qq" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a class="post-action-btn btn btn--default" target="new" href="http://service.weibo.com/share/share.php?&amp;title=http://e-lim.cn/2017-04-26-混合开发中的JSBridge/" title="分享到 Weibo">
+                    <i class="fa fa-weibo" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a class="post-action-btn btn btn--default" target="new" href="https://cli.im/api/qrcode/code?text=http://e-lim.cn/2017-04-26-混合开发中的JSBridge/" title="分享到 微信">
+                    <i class="fa fa-wechat" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+        
+        
+            
+        
+    </div>
+</article>
+
+
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2018 Edwon Lim. All Rights Reserved.
+    </span>
+</footer>
+
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="4">
+                    <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2017-09-20-写给前端应届生的职业规划建议/" data-tooltip="写给前端应届生的职业规划建议" aria-label="上一篇: 写给前端应届生的职业规划建议">
+                
+                    <i class="fa fa-angle-left" aria-hidden="true"></i>
+                    <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2017-01-01-Hy为了Native与Web彼此间的美好/" data-tooltip="Hy —— 为了 Native 与 Web 彼此间的美好" aria-label="下一篇: Hy —— 为了 Native 与 Web 彼此间的美好">
+                
+                    <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                    <i class="fa fa-angle-right" aria-hidden="true"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a class="post-action-btn btn btn--default btn-open-shareoptions" href="#btn-open-shareoptions" aria-label="Diesen Beitrag teilen">
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a class="post-action-btn btn btn--default" target="new" href="http://connect.qq.com/widget/shareqq/index.html?url=http://e-lim.cn/2017-04-26-混合开发中的JSBridge/&amp;title=移动混合开发中的 JSBridge" title="分享到 QQ">
+                    <i class="fa fa-qq" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a class="post-action-btn btn btn--default" target="new" href="http://service.weibo.com/share/share.php?&amp;title=http://e-lim.cn/2017-04-26-混合开发中的JSBridge/" title="分享到 Weibo">
+                    <i class="fa fa-weibo" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a class="post-action-btn btn btn--default" target="new" href="https://cli.im/api/qrcode/code?text=http://e-lim.cn/2017-04-26-混合开发中的JSBridge/" title="分享到 微信">
+                    <i class="fa fa-wechat" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+                </div>
+                <div id="share-options-bar" class="share-options-bar" data-behavior="4">
+    <i id="btn-close-shareoptions" class="fa fa-close"></i>
+    <ul class="share-options">
+        
+            
+            
+            <li class="share-option">
+                <a class="share-option-btn" target="new" href="http://connect.qq.com/widget/shareqq/index.html?url=http://e-lim.cn/2017-04-26-混合开发中的JSBridge/&amp;title=移动混合开发中的 JSBridge">
+                    <i class="fa fa-qq" aria-hidden="true"></i><span>分享到 QQ</span>
+                </a>
+            </li>
+        
+            
+            
+            <li class="share-option">
+                <a class="share-option-btn" target="new" href="http://service.weibo.com/share/share.php?&amp;title=http://e-lim.cn/2017-04-26-混合开发中的JSBridge/">
+                    <i class="fa fa-weibo" aria-hidden="true"></i><span>分享到 Weibo</span>
+                </a>
+            </li>
+        
+            
+            
+            <li class="share-option">
+                <a class="share-option-btn" target="new" href="https://cli.im/api/qrcode/code?text=http://e-lim.cn/2017-04-26-混合开发中的JSBridge/">
+                    <i class="fa fa-wechat" aria-hidden="true"></i><span>分享到 微信</span>
+                </a>
+            </li>
+        
+    </ul>
+</div>
+
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-remove"></i>
+        </div>
+        
+            <img id="about-card-picture" src="https://tva4.sinaimg.cn/crop.0.0.512.512.180/71c50075jw8eprl9kjt8ej20e80e80tc.jpg" alt="作者的图片"/>
+        
+            <h4 id="about-card-name">Edwon Lim</h4>
+        
+            <div id="about-card-bio"><p>性格决定命运，细节决定成败</p>
+</div>
+        
+        
+            <div id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br/>
+                <p>大前端 · 架构</p>
+
+            </div>
+        
+        
+            <div id="about-card-location">
+                <i class="fa fa-map-marker"></i>
+                <br/>
+                中国 · 北京
+            </div>
+        
+    </div>
+</div>
+
+        
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+        <!--SCRIPTS-->
+<script src="/assets/js/script-yhuo2grt8r7qkqumzgjoglkfbicl1thukjgmla6jopu56zpcowfedi5zjcor.min.js"></script>
+<!--SCRIPTS END-->
+
+    
+
+
+
+<script>
+    $(function() {
+        $('a[title="WeChat"]').fancybox({})
+    });
+</script>
+
+    </body>
+</html>
