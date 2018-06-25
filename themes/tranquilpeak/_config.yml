@@ -267,11 +267,11 @@ sharing_options:
     qq:
         title: "QQ"
         icon: "fa-qq"
-        url: "http://connect.qq.com/widget/shareqq/index.html?url={{post.permalink}}&title={{post.title}}"
+        url: "https://connect.qq.com/widget/shareqq/index.html?url={{post.permalink}}&title={{post.title}}"
     weibo:
         title: "Weibo"
         icon: "fa-weibo"
-        url: "http://service.weibo.com/share/share.php?&title={{post.permalink}}"
+        url: "https://service.weibo.com/share/share.php?&title={{post.permalink}}"
     wechat:
         title: "Wechat"
         icon: "fa-wechat"

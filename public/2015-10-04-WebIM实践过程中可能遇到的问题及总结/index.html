@@ -11,12 +11,12 @@
     
     
     
-    <script type="application/ld+json">{"@context":"http://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"Edwon Lim","sameAs":["https://ymfe.org","https://ws3.sinaimg.cn/large/006tKfTcly1frsdntpo4aj30jb0ich0m.jpg","https://weibo.com/edwonlim","https://github.com/EdwonLim","mailto:edwon.lim@gmail.com"],"image":"https://tva4.sinaimg.cn/crop.0.0.512.512.180/71c50075jw8eprl9kjt8ej20e80e80tc.jpg"},"articleBody":"昨天晚上到今天早晨，在微信群QCon可扩展高可用框架群，被 @TimYang 拉进群，主要讨论了一下 WebIM前端的相关问题。\n把群里的讨论内容和我自己的一些看法总结如下： \n\n对于PC端的WebIM，使用WebScoket结合长轮询的方式。使用长轮询，不仅仅因为WebSocket浏览器兼容性问题，还有就是网络原因，有些网络对WebSocket有限制，原来遇到过，能和WebSocket Server建立链接，但是数据包发送，对方收不到的情况。要视情况，切换到长轮训方式。\n关于长轮询，它的及时性是很高的。不同于定时轮询，它的原理是，Client端发请求，Server端Pendding，当有需要推送的消息或者超过一定时间，才会Response。然后Client端再发起请求。这样能保证，推送消息的及时性。同域可以用Ajax，跨域可以用Jsonp。因为url长度限制的原因，Jsonp形式对消息长度有限制。或者限制消息长度，或者消息过长，分多次请求发送。\n在支持http1.1的浏览器里，可以用长链接，用得很少，坑未知。\n移动Web上，用WebSocket兼容性问题少，理论上绝大多数机型，都支持WebScoket，但是耗电量和持续性不好处理，页面在后台时，线程可能被停掉，这样不能保证在停掉期间，消息的及时推送。现在移动端纯Web端，对于及时通信，个人暂时没有了解到比较靠谱的方案。\n对于服务，可以用CometD。如果考虑node的话，可以看一下socket.io。\nAck，为了适应各种『糟糕』的网络情况，和消息相关的都要做ack确认，服务端，在一定时间内，没收到ack，要重新push消息。而前端要对消息进行判重（有可能前端发ack了，服务端没收到，又重新push了）。\n状态同步，主要是已读状态同步，一端阅读消息后，要通过服务器将已读状态分发给其他各端。状态同步，还涉及到一个地方是重练后的状态同步。网络断开、请求超时、心跳超时，前端都会进行重练，重练后需要同步所有的状态，因为你不知道重练期间，究竟发生了什么。当然，重练也有逻辑的，不能一有问题就立即重练，要做延时。否则出问题时，容易滚雪球造成更大问题。\n使用Flash，可以用Flash与服务器创建Tcp链接，激活的页面与服务端及时同步，非激活页面同步时间长。\n\n最后，感谢各位的对技术的热情和毫无保留的解答疑问。\n","dateCreated":"2015-10-04T18:55:33+08:00","dateModified":"2018-05-29T18:54:20+08:00","datePublished":"2015-10-04T18:55:33+08:00","description":"昨天晚上到今天早晨，在微信群QCon可扩展高可用框架群，被 @TimYang 拉进群，主要讨论了一下 WebIM前端的相关问题。\n把群里的讨论内容和我自己的一些看法总结如下：","headline":"WebIM实践过程中可能遇到的问题及总结","image":["https://ws3.sinaimg.cn/large/006tKfTcly1frsep4zshhj30cs0cs755.jpg"],"mainEntityOfPage":{"@type":"WebPage","@id":"http://e-lim.cn/2015-10-04-WebIM实践过程中可能遇到的问题及总结/"},"publisher":{"@type":"Organization","name":"Edwon Lim","sameAs":["https://ymfe.org","https://ws3.sinaimg.cn/large/006tKfTcly1frsdntpo4aj30jb0ich0m.jpg","https://weibo.com/edwonlim","https://github.com/EdwonLim","mailto:edwon.lim@gmail.com"],"image":"https://tva4.sinaimg.cn/crop.0.0.512.512.180/71c50075jw8eprl9kjt8ej20e80e80tc.jpg","logo":{"@type":"ImageObject","url":"https://tva4.sinaimg.cn/crop.0.0.512.512.180/71c50075jw8eprl9kjt8ej20e80e80tc.jpg"}},"url":"http://e-lim.cn/2015-10-04-WebIM实践过程中可能遇到的问题及总结/","keywords":"Weibo, IM","thumbnailUrl":"https://ws3.sinaimg.cn/large/006tKfTcly1frsep4zshhj30cs0cs755.jpg"}</script>
+    <script type="application/ld+json">{"@context":"http://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"Edwon Lim","sameAs":["https://ymfe.org","https://ws3.sinaimg.cn/large/006tKfTcly1frsdntpo4aj30jb0ich0m.jpg","https://weibo.com/edwonlim","https://github.com/EdwonLim","mailto:edwon.lim@gmail.com"],"image":"https://tva4.sinaimg.cn/crop.0.0.512.512.180/71c50075jw8eprl9kjt8ej20e80e80tc.jpg"},"articleBody":"昨天晚上到今天早晨，在微信群QCon可扩展高可用框架群，被 @TimYang 拉进群，主要讨论了一下 WebIM前端的相关问题。\n把群里的讨论内容和我自己的一些看法总结如下： \n\n对于PC端的WebIM，使用WebScoket结合长轮询的方式。使用长轮询，不仅仅因为WebSocket浏览器兼容性问题，还有就是网络原因，有些网络对WebSocket有限制，原来遇到过，能和WebSocket Server建立链接，但是数据包发送，对方收不到的情况。要视情况，切换到长轮训方式。\n关于长轮询，它的及时性是很高的。不同于定时轮询，它的原理是，Client端发请求，Server端Pendding，当有需要推送的消息或者超过一定时间，才会Response。然后Client端再发起请求。这样能保证，推送消息的及时性。同域可以用Ajax，跨域可以用Jsonp。因为url长度限制的原因，Jsonp形式对消息长度有限制。或者限制消息长度，或者消息过长，分多次请求发送。\n在支持http1.1的浏览器里，可以用长链接，用得很少，坑未知。\n移动Web上，用WebSocket兼容性问题少，理论上绝大多数机型，都支持WebScoket，但是耗电量和持续性不好处理，页面在后台时，线程可能被停掉，这样不能保证在停掉期间，消息的及时推送。现在移动端纯Web端，对于及时通信，个人暂时没有了解到比较靠谱的方案。\n对于服务，可以用CometD。如果考虑node的话，可以看一下socket.io。\nAck，为了适应各种『糟糕』的网络情况，和消息相关的都要做ack确认，服务端，在一定时间内，没收到ack，要重新push消息。而前端要对消息进行判重（有可能前端发ack了，服务端没收到，又重新push了）。\n状态同步，主要是已读状态同步，一端阅读消息后，要通过服务器将已读状态分发给其他各端。状态同步，还涉及到一个地方是重练后的状态同步。网络断开、请求超时、心跳超时，前端都会进行重练，重练后需要同步所有的状态，因为你不知道重练期间，究竟发生了什么。当然，重练也有逻辑的，不能一有问题就立即重练，要做延时。否则出问题时，容易滚雪球造成更大问题。\n使用Flash，可以用Flash与服务器创建Tcp链接，激活的页面与服务端及时同步，非激活页面同步时间长。\n\n最后，感谢各位的对技术的热情和毫无保留的解答疑问。\n","dateCreated":"2015-10-04T18:55:33+08:00","dateModified":"2018-05-29T18:54:20+08:00","datePublished":"2015-10-04T18:55:33+08:00","description":"昨天晚上到今天早晨，在微信群QCon可扩展高可用框架群，被 @TimYang 拉进群，主要讨论了一下 WebIM前端的相关问题。\n把群里的讨论内容和我自己的一些看法总结如下：","headline":"WebIM实践过程中可能遇到的问题及总结","image":["https://ws3.sinaimg.cn/large/006tKfTcly1frsep4zshhj30cs0cs755.jpg"],"mainEntityOfPage":{"@type":"WebPage","@id":"https://e-lim.cn/2015-10-04-WebIM实践过程中可能遇到的问题及总结/"},"publisher":{"@type":"Organization","name":"Edwon Lim","sameAs":["https://ymfe.org","https://ws3.sinaimg.cn/large/006tKfTcly1frsdntpo4aj30jb0ich0m.jpg","https://weibo.com/edwonlim","https://github.com/EdwonLim","mailto:edwon.lim@gmail.com"],"image":"https://tva4.sinaimg.cn/crop.0.0.512.512.180/71c50075jw8eprl9kjt8ej20e80e80tc.jpg","logo":{"@type":"ImageObject","url":"https://tva4.sinaimg.cn/crop.0.0.512.512.180/71c50075jw8eprl9kjt8ej20e80e80tc.jpg"}},"url":"https://e-lim.cn/2015-10-04-WebIM实践过程中可能遇到的问题及总结/","keywords":"Weibo, IM","thumbnailUrl":"https://ws3.sinaimg.cn/large/006tKfTcly1frsep4zshhj30cs0cs755.jpg"}</script>
     <meta name="description" content="昨天晚上到今天早晨，在微信群QCon可扩展高可用框架群，被 @TimYang 拉进群，主要讨论了一下 WebIM前端的相关问题。 把群里的讨论内容和我自己的一些看法总结如下：">
 <meta name="keywords" content="Weibo,IM">
 <meta property="og:type" content="blog">
 <meta property="og:title" content="WebIM实践过程中可能遇到的问题及总结">
-<meta property="og:url" content="http://e-lim.cn/2015-10-04-WebIM实践过程中可能遇到的问题及总结/index.html">
+<meta property="og:url" content="https://e-lim.cn/2015-10-04-WebIM实践过程中可能遇到的问题及总结/index.html">
 <meta property="og:site_name" content="E-Lim">
 <meta property="og:description" content="昨天晚上到今天早晨，在微信群QCon可扩展高可用框架群，被 @TimYang 拉进群，主要讨论了一下 WebIM前端的相关问题。 把群里的讨论内容和我自己的一些看法总结如下：">
 <meta property="og:locale" content="zh-cn">
@@ -328,7 +328,7 @@
             
             
             <li class="post-action hide-xs">
-                <a class="post-action-btn btn btn--default" target="new" href="http://connect.qq.com/widget/shareqq/index.html?url=http://e-lim.cn/2015-10-04-WebIM实践过程中可能遇到的问题及总结/&amp;title=WebIM实践过程中可能遇到的问题及总结" title="分享到 QQ">
+                <a class="post-action-btn btn btn--default" target="new" href="https://connect.qq.com/widget/shareqq/index.html?url=https://e-lim.cn/2015-10-04-WebIM实践过程中可能遇到的问题及总结/&amp;title=WebIM实践过程中可能遇到的问题及总结" title="分享到 QQ">
                     <i class="fa fa-qq" aria-hidden="true"></i>
                 </a>
             </li>
@@ -336,7 +336,7 @@
             
             
             <li class="post-action hide-xs">
-                <a class="post-action-btn btn btn--default" target="new" href="http://service.weibo.com/share/share.php?&amp;title=http://e-lim.cn/2015-10-04-WebIM实践过程中可能遇到的问题及总结/" title="分享到 Weibo">
+                <a class="post-action-btn btn btn--default" target="new" href="https://service.weibo.com/share/share.php?&amp;title=https://e-lim.cn/2015-10-04-WebIM实践过程中可能遇到的问题及总结/" title="分享到 Weibo">
                     <i class="fa fa-weibo" aria-hidden="true"></i>
                 </a>
             </li>
@@ -344,7 +344,7 @@
             
             
             <li class="post-action hide-xs">
-                <a class="post-action-btn btn btn--default" target="new" href="https://cli.im/api/qrcode/code?text=http://e-lim.cn/2015-10-04-WebIM实践过程中可能遇到的问题及总结/" title="分享到 微信">
+                <a class="post-action-btn btn btn--default" target="new" href="https://cli.im/api/qrcode/code?text=https://e-lim.cn/2015-10-04-WebIM实践过程中可能遇到的问题及总结/" title="分享到 微信">
                     <i class="fa fa-wechat" aria-hidden="true"></i>
                 </a>
             </li>
@@ -412,7 +412,7 @@
             
             
             <li class="post-action hide-xs">
-                <a class="post-action-btn btn btn--default" target="new" href="http://connect.qq.com/widget/shareqq/index.html?url=http://e-lim.cn/2015-10-04-WebIM实践过程中可能遇到的问题及总结/&amp;title=WebIM实践过程中可能遇到的问题及总结" title="分享到 QQ">
+                <a class="post-action-btn btn btn--default" target="new" href="https://connect.qq.com/widget/shareqq/index.html?url=https://e-lim.cn/2015-10-04-WebIM实践过程中可能遇到的问题及总结/&amp;title=WebIM实践过程中可能遇到的问题及总结" title="分享到 QQ">
                     <i class="fa fa-qq" aria-hidden="true"></i>
                 </a>
             </li>
@@ -420,7 +420,7 @@
             
             
             <li class="post-action hide-xs">
-                <a class="post-action-btn btn btn--default" target="new" href="http://service.weibo.com/share/share.php?&amp;title=http://e-lim.cn/2015-10-04-WebIM实践过程中可能遇到的问题及总结/" title="分享到 Weibo">
+                <a class="post-action-btn btn btn--default" target="new" href="https://service.weibo.com/share/share.php?&amp;title=https://e-lim.cn/2015-10-04-WebIM实践过程中可能遇到的问题及总结/" title="分享到 Weibo">
                     <i class="fa fa-weibo" aria-hidden="true"></i>
                 </a>
             </li>
@@ -428,7 +428,7 @@
             
             
             <li class="post-action hide-xs">
-                <a class="post-action-btn btn btn--default" target="new" href="https://cli.im/api/qrcode/code?text=http://e-lim.cn/2015-10-04-WebIM实践过程中可能遇到的问题及总结/" title="分享到 微信">
+                <a class="post-action-btn btn btn--default" target="new" href="https://cli.im/api/qrcode/code?text=https://e-lim.cn/2015-10-04-WebIM实践过程中可能遇到的问题及总结/" title="分享到 微信">
                     <i class="fa fa-wechat" aria-hidden="true"></i>
                 </a>
             </li>
@@ -455,7 +455,7 @@
             
             
             <li class="share-option">
-                <a class="share-option-btn" target="new" href="http://connect.qq.com/widget/shareqq/index.html?url=http://e-lim.cn/2015-10-04-WebIM实践过程中可能遇到的问题及总结/&amp;title=WebIM实践过程中可能遇到的问题及总结">
+                <a class="share-option-btn" target="new" href="https://connect.qq.com/widget/shareqq/index.html?url=https://e-lim.cn/2015-10-04-WebIM实践过程中可能遇到的问题及总结/&amp;title=WebIM实践过程中可能遇到的问题及总结">
                     <i class="fa fa-qq" aria-hidden="true"></i><span>分享到 QQ</span>
                 </a>
             </li>
@@ -463,7 +463,7 @@
             
             
             <li class="share-option">
-                <a class="share-option-btn" target="new" href="http://service.weibo.com/share/share.php?&amp;title=http://e-lim.cn/2015-10-04-WebIM实践过程中可能遇到的问题及总结/">
+                <a class="share-option-btn" target="new" href="https://service.weibo.com/share/share.php?&amp;title=https://e-lim.cn/2015-10-04-WebIM实践过程中可能遇到的问题及总结/">
                     <i class="fa fa-weibo" aria-hidden="true"></i><span>分享到 Weibo</span>
                 </a>
             </li>
@@ -471,7 +471,7 @@
             
             
             <li class="share-option">
-                <a class="share-option-btn" target="new" href="https://cli.im/api/qrcode/code?text=http://e-lim.cn/2015-10-04-WebIM实践过程中可能遇到的问题及总结/">
+                <a class="share-option-btn" target="new" href="https://cli.im/api/qrcode/code?text=https://e-lim.cn/2015-10-04-WebIM实践过程中可能遇到的问题及总结/">
                     <i class="fa fa-wechat" aria-hidden="true"></i><span>分享到 微信</span>
                 </a>
             </li>

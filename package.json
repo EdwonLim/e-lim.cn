@@ -5,6 +5,10 @@
   "hexo": {
     "version": "3.7.1"
   },
+  "scripts": {
+    "build": "hexo clean && hexo g",
+    "publish": "git add --all && git commit -a -m 'feat: update blog' && git push"
+  },
   "dependencies": {
     "@fancyapps/fancybox": "3.2.5",
     "font-awesome": "4.7.0",

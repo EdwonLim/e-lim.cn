@@ -12,7 +12,7 @@ Docker 的意义在于：**Build once， run anything in anywhere at anytime** �
 
 此篇文章要探讨一下 Docker 在前端技术中的应用。有人说，Docker 是服务端技术，和前端没有任何关系。如果你指的是纯粹的前端，纯粹的 HTML + JS + CSS 的话，真的没有什么关系；但是在广义的大前端环境下，你的前端项目要依赖各式各样的打包工具或者你要用 Node 开发一个后端工程，那么关系就很大了。 这里笔者，主要结合前端开发环境上遇到的问题，来探讨 Docker 的应用。
 
-![各大厂商的支持](http://img.ptcms.csdn.net/article/201506/23/5588fb74cab55_middle.jpg)
+![各大厂商的支持](https://img.ptcms.csdn.net/article/201506/23/5588fb74cab55_middle.jpg)
 
 ### 前端开发环境遇到的问题
 
@@ -30,7 +30,7 @@ Docker 的意义在于：**Build once， run anything in anywhere at anytime** �
 
 而  Docker 作为轻量级虚拟化工具，在提供了仓库和版本的逻辑的同时，体积也比一般的虚拟机镜像小得多，并且支持『秒启』，所以 Docker 几乎可以完美的解决上述三个问题。
 
-![Docker VS VMs](http://img.blog.csdn.net/20140306094828703)
+![Docker VS VMs](https://img.blog.csdn.net/20140306094828703)
 
 既然解决了问题，那么下面要了解下怎么办。
 
@@ -88,14 +88,14 @@ docker run -v ./:/root/workspace node_environment /bin/bash -c "source ~/.bash_p
 
 ### 接地气的 Dokit
 
-Dokit 可以帮助开发者快速部署基于Docker的一体化前端开发环境，介绍文档地址为 <http://ued.qunar.com/dokit/>。
+Dokit 可以帮助开发者快速部署基于Docker的一体化前端开发环境，介绍文档地址为 <https://ued.qunar.com/dokit/>。
 
 Dokit 主要提供了两个功能命令：
 
 1. `dokit`: 初始化创建容器，并进入容器，之后每次直接快速进入容器。
 2. `dokit run 你的命令`: 快速执行命令
 
-![dokit run](http://ww1.sinaimg.cn/large/71c50075gw1f8oii9eenxj20mf08040j.jpg)
+![dokit run](https://ww1.sinaimg.cn/large/71c50075gw1f8oii9eenxj20mf08040j.jpg)
 
 Dokit 的实现原理很简单，就是封装了 docker 命令和一些经常使用的逻辑，使对 Docker 不是熟悉的用户可以很快上手，三分钟部署好前端环境。
 
