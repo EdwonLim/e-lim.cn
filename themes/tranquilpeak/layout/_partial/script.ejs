@@ -85,17 +85,21 @@
                         ] // 必填，需要使用的JS接口列表，所有JS接口列表见附录2
                     });
 
-                    wx.checkJsApi({
-                        jsApiList: [
-                            'onMenuShareTimeline',
-                            'onMenuShareAppMessage',
-                            'onMenuShareQQ',
-                            'onMenuShareWeibo'
-                        ], // 需要检测的JS接口列表，所有JS接口列表见附录2,
-                        success: function(res) {
-                            alert(JSON.stringify(res, {}, 4));
-                        }
+
+                    wx.ready(function(){
+                        wx.checkJsApi({
+                            jsApiList: [
+                                'onMenuShareTimeline',
+                                'onMenuShareAppMessage',
+                                'onMenuShareQQ',
+                                'onMenuShareWeibo'
+                            ], // 需要检测的JS接口列表，所有JS接口列表见附录2,
+                            success: function(res) {
+                                alert(JSON.stringify(res, {}, 4));
+                            }
+                        });
                     });
+                 
                 }
             });
         }
