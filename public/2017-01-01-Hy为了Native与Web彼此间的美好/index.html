@@ -571,11 +571,12 @@
 <script>
     $(function() {
         $('a[title="WeChat"]').fancybox({});
-        if (wx) {
+        if (window.wx) {
             $.ajax({
                 url: 'getSignature',
                 dataType: 'json',
                 success: function (data) {
+                    alert(JSON.stringify(data, {}, 4));
                     wx.config({
                         debug: true, // 开启调试模式
                         appId: data.appId, // 必填，公众号的唯一标识
