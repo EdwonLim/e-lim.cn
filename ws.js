@@ -85,21 +85,21 @@ const [appId, appsecret] = fs.readFileSync('account.conf', 'UTF-8').split(':');
 const cache = {};
 
 app.use('/getSignature', (req, res) => {
-    getTicket(cache, appId, appsecret, (err, data) => {
-        if (err) {
-            res.status(500).end('获取签名失败');
-        } else {
-            res.json(getSignature(data, appId, req.headers.referer));
-        }
-    });
+    const url = req.headers.referer;
+    console.log('URL: ' + url);
+    if (url.indexOf('e-lim.cn') > -1) {
+        getTicket(cache, appId, appsecret, (err, data) => {
+            if (err) {
+                res.status(500).end('获取签名失败');
+            } else {
+                res.json(getSignature(data, appId, url));
+            }
+        });
+    } else {
+        res.status(500).end('获取签名失败');
+    }
 });
-
-app.use('/', (req, res) => {
-    res.type('html');
-    res.end('<script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script>')
-});
-
 
 app.listen(port, () => {
-    console.log(`Service Listening on port ${port}!`)
+    console.log(`Service Listening on port ${port}!`);
 });
