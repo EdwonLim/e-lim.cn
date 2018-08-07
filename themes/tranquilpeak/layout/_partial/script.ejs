@@ -55,6 +55,7 @@
 <% if (config.algolia && config.algolia.appId && config.algolia.apiKey && config.algolia.indexName) { %>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.14.1/moment-with-locales.min.js"></script>
     <script src="//cdn.jsdelivr.net/algoliasearch/3/algoliasearch.min.js"></script>
+    <script src="//res.wx.qq.com/open/js/jweixin-1.2.0.js"></script>
     <script>
         var algoliaClient = algoliasearch('<%= config.algolia.appId %>', '<%= config.algolia.apiKey %>');
         var algoliaIndex = algoliaClient.initIndex('<%= config.algolia.indexName %>');
@@ -64,7 +65,8 @@
 <script>
     $(function() {
         $('a[title="WeChat"]').fancybox({});
-        if (window.wx) {
+        var agent = navigator.userAgent.toLowerCase();
+        if (agent.match(/MicroMessenger/i) == "micromessenger") {
             $.ajax({
                 url: 'getSignature',
                 dataType: 'json',

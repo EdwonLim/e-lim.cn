@@ -573,7 +573,8 @@
 <script>
     $(function() {
         $('a[title="WeChat"]').fancybox({});
-        if (window.wx) {
+        var agent = navigator.userAgent.toLowerCase();
+        if (agent.match(/MicroMessenger/i) == "micromessenger") {
             $.ajax({
                 url: 'getSignature',
                 dataType: 'json',
