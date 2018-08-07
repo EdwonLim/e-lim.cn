@@ -530,7 +530,6 @@
                 url: 'getSignature',
                 dataType: 'json',
                 success: function (data) {
-                    alert(JSON.stringify(data, {}, 4));
                     wx.config({
                         debug: true, // 开启调试模式
                         appId: data.appId, // 必填，公众号的唯一标识
@@ -544,6 +543,18 @@
                             'onMenuShareQQ',
                             'onMenuShareWeibo'
                         ] // 必填，需要使用的JS接口列表，所有JS接口列表见附录2
+                    });
+
+                    wx.checkJsApi({
+                        jsApiList: [
+                            'onMenuShareTimeline',
+                            'onMenuShareAppMessage',
+                            'onMenuShareQQ',
+                            'onMenuShareWeibo'
+                        ], // 需要检测的JS接口列表，所有JS接口列表见附录2,
+                        success: function(res) {
+                            alert(JSON.stringify(res, {}, 4));
+                        }
                     });
                 }
             });

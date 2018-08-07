@@ -100,6 +100,11 @@ app.use('/getSignature', (req, res) => {
     }
 });
 
-app.listen(port, () => {
-    console.log(`Service Listening on port ${port}!`);
+// app.listen(port, () => {
+//     console.log(`Service Listening on port ${port}!`);
+// });
+
+
+getTicket(cache, appId, appsecret, (err, data) => {
+    console.log(err, data)
 });
