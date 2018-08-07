@@ -589,53 +589,9 @@
     
 
 
-<script src="//res.wx.qq.com/open/js/jweixin-1.2.0.js"></script>
 <script>
     $(function() {
         $('a[title="WeChat"]').fancybox({});
-        var agent = navigator.userAgent.toLowerCase();
-        if (agent.match(/MicroMessenger/i) == "micromessenger") {
-            $.ajax({
-                url: 'getSignature',
-                dataType: 'json',
-                success: function (data) {
-                    wx.config({
-                        debug: false, // 开启调试模式
-                        appId: data.appId, // 必填，公众号的唯一标识
-                        timestamp: data.timestamp, // 必填，生成签名的时间戳
-                        nonceStr: data.nonceStr, // 必填，生成签名的随机串
-                        signature: data.signature, // 必填，签名，见附录1
-                        jsApiList: [
-                            'checkJsApi',
-                            'onMenuShareTimeline',
-                            'onMenuShareAppMessage',
-                            'onMenuShareQQ',
-                            'onMenuShareWeibo'
-                        ] // 必填，需要使用的JS接口列表，所有JS接口列表见附录2
-                    });
-
-
-                    wx.ready(function(){
-                        wx.checkJsApi({
-                            jsApiList: [
-                                'onMenuShareTimeline',
-                                'onMenuShareAppMessage',
-                                'onMenuShareQQ',
-                                'onMenuShareWeibo'
-                            ], // 需要检测的JS接口列表，所有JS接口列表见附录2,
-                            success: function(res) {
-                                console.log('check', res);
-                            }
-                        });
-                    });
-
-                    wx.error(function(res) {
-                        console.log('error', res);
-                    });
-                 
-                }
-            });
-        }
     });
 </script>
 
