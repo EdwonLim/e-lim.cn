@@ -10,4 +10,8 @@
         <span><%= __('post.categorized_in')  %> </span>
         《<%- partial('category', {categories: post.categories})%>》
     <% } %>
+    <% if (!is_home()) { %>
+    。
+    <span>文章共 <%= wordcount(post.content) %> 字，大约需要阅读 <%= min2read(post.content) %> 分钟。</span>
+    <% } %>
 </div>
