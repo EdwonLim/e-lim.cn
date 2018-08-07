@@ -85,7 +85,7 @@ const [appId, appsecret] = fs.readFileSync('account.conf', 'UTF-8').split(':');
 const cache = {};
 
 app.use('/getSignature', (req, res) => {
-    const url = req.headers.referer;
+    const url = req.headers.referer || '';
     console.log('URL: ' + url);
     if (url.indexOf('e-lim.cn') > -1) {
         getTicket(cache, appId, appsecret, (err, data) => {
