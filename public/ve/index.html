@@ -27,20 +27,19 @@
         const keyList = [' ', '\n', ':', '：', ',', '，', '.', '。'];
         let prevLength = 0;
         $(() => {
-            $('#container').height(window.innerHeight - 20);
+            $('#container').height(window.innerHeight / 2);
             $('#editor').focus();
             $('#editor').on('input', () => {
                 const text = $('#editor').val();
                 const last = text[text.length - 1];
-                if (text.length <= prevLength) {
+                if (text.length < prevLength) {
                     prevLength = text.length;
                 } else if (keyList.indexOf(last) > -1) {
                     const msg = new SpeechSynthesisUtterance(text.slice(prevLength)); 
-                    msg.voice = speechSynthesis.getVoices().filter((voice) => voice.lang.indexOf('zh-CN') > -1)[0];
+                    msg.voice = speechSynthesis.getVoices().filter((voice) => voice.lang.indexOf('zh-CN') > -1)[1];
                     speechSynthesis.speak(msg); 
                     prevLength = text.length;
                 }
-                
             });
         });
     </script>
