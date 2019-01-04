@@ -11,7 +11,7 @@
     
     
     
-    <script type="application/ld+json">{"@context":"http://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"Edwon Lim","sameAs":["https://ymfe.org","https://ws3.sinaimg.cn/large/006tKfTcly1frsdntpo4aj30jb0ich0m.jpg","https://weibo.com/edwonlim","https://github.com/EdwonLim","mailto:edwon.lim@gmail.com"],"image":"https://tvax4.sinaimg.cn/crop.0.0.512.512.180/71c50075ly8fxujicydtnj20e80e8aab.jpg"},"articleBody":"去杭州参加了，阿里巴巴第10届D2前端论坛，主题是『融合』，可以说受益匪浅。上一次D2，笔者是从自身技术的角度去听了分享，而此次，却是从团队技术方向和解决方案的角度去听，不同的角度有不同的收获。\n对于论坛的主线，大概分成三个方向：\n\n首当其冲的当然是现在最火的多端一体化方案，像Hybrid，React Native都是此类，同时也是众说纷纭的一类。\n\n另外，则是 Node 在大型项目中的应用的问题，包括多并发处理、性能优化以及其他一些在实战中的经验。\n\n最后，是一些新框架、工具的东西，像数据可视化的DataV，像接口管理的RAP，都是一些不错的东西，也有很多可用的场景。\n\n\nReact Native 以及 Hybrid 的发展前景说到这里，不得不提到老生常谈的『 Native vs Web 』的话题。其实，也就是 Native 的用户体验 与 Web 的开发体验 间的博弈。此时，React Native 横空出世，倍受关注。为什么呢？原因有以下几点：\n\nNative API - 用户体验\n编程语言能力 JS Core &amp; 不用编译 - 开发体验\n布局和样式能力 - 开发体验\n声明式编程（组件化）- 开发体验\n开源&amp;社区 - 开发体验\n\n从这五点来看，React Native 非常注重开发者的体验，这也是 React Native 火遍全球的原因之一。\n\n但，从业务需求上看 使用 React Native 成本还是比较高的。一方面，业务的学习迁移成本还是比较高的；另一方面，iOS和Android两个平台分别开发，代码复用率只有 85% 左右，而且对 Touch 平台的兼容也并不是太好（来自阿里手淘团队的分享）。\n而另一位来自淘宝的 @元彦 分享了基于 React Native 的适配 iOS、Android、Touch 三平台的框架 Portal，并计划本月底开源，具体细节还没公布（地址为：https://github.com/taobaofed/react-web）。对于Portal，有同仁总结其最大的特点是 衣帽间业务层代码在无线 Web 和 Native 双平台上实现了 100% 复用率。（Portal 提供了 React-Web 部分，来适配 Touch 端的展现。） 这套架构的核心是Generator，发布时代码通过Generator进行打包，分发到各个平台。具体细节还没有放出，等开源之后可以详细研究其代码结构。最后，这套框架暂时没有使用在阿里核心的业务上，这种方案是否有效，还有待考证。\n至此，可以对 React Native 做个简单的总结：对于原有业务，迁移到React Native 的成本还是比较高的；对于新业务，多端平台代码复用的问题有待考证。\n这里，提一个笔者对 React Native 的疑问：当 Native 原生开发解决开发体验问题或者 Web 开发解决用户体验问题（主要是低端Android）后，React Native 将如何定位？\n或许，Native 原生开发解决开发体验问题很难，但是 Web 解决用户体验问题并不困难，至少现在在 iOS 上，Web 的体验可以做得相当好。而一些大数据渲染导致浏览器内存泄露至崩溃的问题，用 React Native 和用原生 Native 做的区别和成本又相差多少呢？很多人和笔者有同样的疑惑，但是并没有很明确的答案。提升 Web 端的性能看似是厂商直接提升硬件和系统般简单，而且 Webkit 也几乎统一了移动端浏览器内核，但是进展究竟如何，并没有很好地预期。\n回到分享，手淘分享了他们的方案，他们的方案是 将Native覆盖在WebView上，提供 TableView、TabBar、Slider、SideBar四个Native组件，通过引擎将模板渲染成Native和Webview混合的UI，比较固定或者高性能的部分用native，动态内容用web，一起拼装。\n\n刚好，另一个会场分享 Baidu 的同学分享 Clouda+ 的 Blend UI，和手淘的方案很类似，下面是 Blend UI 的特征：\n\n多Webview控制能力。让一个Webapp拆到多个webview中运行，并能用Javascript来调度，解决了页面过大导致卡顿的问题，同时，webview的转场动画由Native代码实现，也解决了转场动画不流畅的问题。\n\nNative组件嵌入能力。能将Native控件嵌入Webview中，这样就能让页面中那些性能较差的部分用Native来实现，以最大化地提高体验和交互。\n\n\n\n当然这种方案也有一些问题，例如 Native 和 WebView 的滚动不同步，考虑限制 Native 大部分为 Fixed，对业务限制比较大等等。\n其实，类似于国内也有类似 React Native 的项目，GeeZooStudio （用过 BeeFramework 的 iOS 开发者应该知道）的创始人分享了他们实现的 NativeUI 框架，自己实现了引擎，来解析 JS 并用 Native 渲染 UI，预计半年内发布和开源。\n今年 D2 上，React Native 被受关注（PS：蚂蚁金融和Strikingly的分享是React 不是 React Native），但是成果并不是很多，毕竟离 React Native 的 Android 版本开源，刚刚三个月的时间，并不被以应用到很多大型项目中。\n下面，总结一下笔者在听完D2分享后，对 React Native 和 Hybrid 的一些看法和想法：\n\nReact Native 是值得学习和使用的，但是大公司主要业务项目的实践还不是很多。老业务迁移成本大，新业务可以尝试，鉴于 React Native 迭代速度比较快，核心框架还不是非常稳定，坑较多，所以要走的路还很长。\nWebView Hybrid 方案，在厂商浏览器性能提升之前，怎么达到 Native 的交互体验仍是比较严重的问题。为此手淘和百度（已经用于百度贴吧）给出的解决方案，是融合 Native 和 WebView，但是这样的 JS 和 Native 交互会很多，多 WebView 通信的问题需要接解决。\n刚才说到，React Native 迭代比较快，核心框架还不稳定，因此，如果在稳定之前采用 React Native，那么 React Native 框架更新 将是一个问题。同样的，WebView HyBrid 方案也存在缓存离线问题，包括手淘、蚂蚁金服和QZone，都使用 推拉结合 的方式，让离线资源尽快更新。\n\n最后，耳闻阿里自己搞了一个Weex框架，是 @勾股 带头搞的，类似于 React Native 框架的东西，但是更轻量，像是 Vue-Native (vue.js @尤小右)。具体的介绍，可以看 如何看待阿里无线前端发布的Weex?。 @winter 的回答，说明了开源计划和为什么放弃RN。（PS：话说，这个框架好像主要针对于电商场景）\nNodeJS 在大型场景中的应用和性能优化NodeJS，从前几年只被看好，到现在已经应用到类似大型业务项目中，竞争力逐渐显现。用 NodeJS 要比 Spring 好？比 PHP 快？这些都是相对于言的。NodeJS 已经用在了 天猫 和 Qzone 两个大型项目中，这足可以证明 NodeJS 的能力。\n\n@不四 讲了天猫的 NodeJS 方案，而腾讯的同学讲了 QZone 的方案。其实大同小异，主要的内容就几项：\n\n怎么处理高并发？\n怎么记录日志并快速还原场景？\n怎么友好地退出子进程？\n怎么做业务分层？\n怎么设计中间件？\n……\n\n其中，@不四 还分享了使用 Cluster 时的一些经验，例如，Master 只做进程管理，Worker 异常退出后自动重启逻辑使用的模块 cfork，Http 服务优雅退出的模块 graceful 等等。\n在其他会场，@朴灵 还分享了 AliNode 和 NodeJS 的性能优化经验，具体细节不再说了，涉及到更改 NodeJS 源码。同时，问题调试和定位 作为 NodeJS 服务器端最大痛点的一些处理经验。\n最后，其实回到一个问题，为什么用NodeJS？其实大部分答案是 因为前端所以Node， NodeJs 驱动的移动端的 H5 开发效率有很大优势，做接口合并、转发等逻辑，大大减小沟通成本。\nPS：使用 NodeJS 的原因其实是笔者脑洞的。其实他们选择用 NodeJS 的原因不仅仅为此，更多应该是业务场景的原因。以后需要前端同学更努力，才能使 NodeJS 更广泛的使用。\n工具关于工具，笔者关注了一下 Web接口管理工具RAP，一个阿里系的接口管理工具。\n\n有兴趣的同学可以关注下，简单看了一下，功能非常全，对于电商场景比较适用。\n\nGithub地址: https://github.com/thx/RAP\n\n笔者准备深入研究，构建一个适用于我司业务的Web接口管理工具。\n其他之前对 React JS 研究得并不深，所以分享只是大概了解下。\n而炫酷阿里的 DataV 数据可视化，可以参见 视频，这里也不多说了。\n总结今年的D2，主题是融合，火的是多端一体化开发。引用两句话做总结：(非原话，含义相似)\n\n@玄难：十年前写的Java代码现在还能用，十年前写的JS代码现在绝对用不了\n@打饭时碰到的路人甲：现在的前端团队不懂Native，是活不下去的（PS：只是意会，不是绝对）\n\n期待明年的D2。更多 D2 的内容，可以参看 参加第十届D2前端技术论坛，你有什么收获？ 中的答案。\n","dateCreated":"2015-12-21T00:00:00+08:00","dateModified":"2018-06-25T11:18:28+08:00","datePublished":"2015-12-21T00:00:00+08:00","description":"去杭州参加了，阿里巴巴第10届D2前端论坛，主题是『融合』，可以说受益匪浅。上一次D2，笔者是从自身技术的角度去听了分享，而此次，却是从团队技术方向和解决方案的角度去听，不同的角度有不同的收获。","headline":"2015阿里巴巴D2前端论坛-参会总结","image":["https://ws1.sinaimg.cn/large/006cGJIjly1fizh2ar55tj30dc07ot95.jpg"],"mainEntityOfPage":{"@type":"WebPage","@id":"https://e-lim.cn/20151221/"},"publisher":{"@type":"Organization","name":"Edwon Lim","sameAs":["https://ymfe.org","https://ws3.sinaimg.cn/large/006tKfTcly1frsdntpo4aj30jb0ich0m.jpg","https://weibo.com/edwonlim","https://github.com/EdwonLim","mailto:edwon.lim@gmail.com"],"image":"https://tvax4.sinaimg.cn/crop.0.0.512.512.180/71c50075ly8fxujicydtnj20e80e8aab.jpg","logo":{"@type":"ImageObject","url":"https://tvax4.sinaimg.cn/crop.0.0.512.512.180/71c50075ly8fxujicydtnj20e80e8aab.jpg"}},"url":"https://e-lim.cn/20151221/","keywords":"Mobile, D2","thumbnailUrl":"https://ws1.sinaimg.cn/large/006cGJIjly1fizh2ar55tj30dc07ot95.jpg"}</script>
+    <script type="application/ld+json">{"@context":"http://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"Edwon Lim","sameAs":["https://ws3.sinaimg.cn/large/006tKfTcly1frsdntpo4aj30jb0ich0m.jpg","https://weibo.com/edwonlim","https://github.com/EdwonLim","mailto:edwon.lim@gmail.com","/books"],"image":"https://tvax4.sinaimg.cn/crop.0.0.512.512.180/71c50075ly8fxujicydtnj20e80e8aab.jpg"},"articleBody":"去杭州参加了，阿里巴巴第10届D2前端论坛，主题是『融合』，可以说受益匪浅。上一次D2，笔者是从自身技术的角度去听了分享，而此次，却是从团队技术方向和解决方案的角度去听，不同的角度有不同的收获。\n对于论坛的主线，大概分成三个方向：\n\n首当其冲的当然是现在最火的多端一体化方案，像Hybrid，React Native都是此类，同时也是众说纷纭的一类。\n\n另外，则是 Node 在大型项目中的应用的问题，包括多并发处理、性能优化以及其他一些在实战中的经验。\n\n最后，是一些新框架、工具的东西，像数据可视化的DataV，像接口管理的RAP，都是一些不错的东西，也有很多可用的场景。\n\n\nReact Native 以及 Hybrid 的发展前景说到这里，不得不提到老生常谈的『 Native vs Web 』的话题。其实，也就是 Native 的用户体验 与 Web 的开发体验 间的博弈。此时，React Native 横空出世，倍受关注。为什么呢？原因有以下几点：\n\nNative API - 用户体验\n编程语言能力 JS Core &amp; 不用编译 - 开发体验\n布局和样式能力 - 开发体验\n声明式编程（组件化）- 开发体验\n开源&amp;社区 - 开发体验\n\n从这五点来看，React Native 非常注重开发者的体验，这也是 React Native 火遍全球的原因之一。\n\n但，从业务需求上看 使用 React Native 成本还是比较高的。一方面，业务的学习迁移成本还是比较高的；另一方面，iOS和Android两个平台分别开发，代码复用率只有 85% 左右，而且对 Touch 平台的兼容也并不是太好（来自阿里手淘团队的分享）。\n而另一位来自淘宝的 @元彦 分享了基于 React Native 的适配 iOS、Android、Touch 三平台的框架 Portal，并计划本月底开源，具体细节还没公布（地址为：https://github.com/taobaofed/react-web）。对于Portal，有同仁总结其最大的特点是 衣帽间业务层代码在无线 Web 和 Native 双平台上实现了 100% 复用率。（Portal 提供了 React-Web 部分，来适配 Touch 端的展现。） 这套架构的核心是Generator，发布时代码通过Generator进行打包，分发到各个平台。具体细节还没有放出，等开源之后可以详细研究其代码结构。最后，这套框架暂时没有使用在阿里核心的业务上，这种方案是否有效，还有待考证。\n至此，可以对 React Native 做个简单的总结：对于原有业务，迁移到React Native 的成本还是比较高的；对于新业务，多端平台代码复用的问题有待考证。\n这里，提一个笔者对 React Native 的疑问：当 Native 原生开发解决开发体验问题或者 Web 开发解决用户体验问题（主要是低端Android）后，React Native 将如何定位？\n或许，Native 原生开发解决开发体验问题很难，但是 Web 解决用户体验问题并不困难，至少现在在 iOS 上，Web 的体验可以做得相当好。而一些大数据渲染导致浏览器内存泄露至崩溃的问题，用 React Native 和用原生 Native 做的区别和成本又相差多少呢？很多人和笔者有同样的疑惑，但是并没有很明确的答案。提升 Web 端的性能看似是厂商直接提升硬件和系统般简单，而且 Webkit 也几乎统一了移动端浏览器内核，但是进展究竟如何，并没有很好地预期。\n回到分享，手淘分享了他们的方案，他们的方案是 将Native覆盖在WebView上，提供 TableView、TabBar、Slider、SideBar四个Native组件，通过引擎将模板渲染成Native和Webview混合的UI，比较固定或者高性能的部分用native，动态内容用web，一起拼装。\n\n刚好，另一个会场分享 Baidu 的同学分享 Clouda+ 的 Blend UI，和手淘的方案很类似，下面是 Blend UI 的特征：\n\n多Webview控制能力。让一个Webapp拆到多个webview中运行，并能用Javascript来调度，解决了页面过大导致卡顿的问题，同时，webview的转场动画由Native代码实现，也解决了转场动画不流畅的问题。\n\nNative组件嵌入能力。能将Native控件嵌入Webview中，这样就能让页面中那些性能较差的部分用Native来实现，以最大化地提高体验和交互。\n\n\n\n当然这种方案也有一些问题，例如 Native 和 WebView 的滚动不同步，考虑限制 Native 大部分为 Fixed，对业务限制比较大等等。\n其实，类似于国内也有类似 React Native 的项目，GeeZooStudio （用过 BeeFramework 的 iOS 开发者应该知道）的创始人分享了他们实现的 NativeUI 框架，自己实现了引擎，来解析 JS 并用 Native 渲染 UI，预计半年内发布和开源。\n今年 D2 上，React Native 被受关注（PS：蚂蚁金融和Strikingly的分享是React 不是 React Native），但是成果并不是很多，毕竟离 React Native 的 Android 版本开源，刚刚三个月的时间，并不被以应用到很多大型项目中。\n下面，总结一下笔者在听完D2分享后，对 React Native 和 Hybrid 的一些看法和想法：\n\nReact Native 是值得学习和使用的，但是大公司主要业务项目的实践还不是很多。老业务迁移成本大，新业务可以尝试，鉴于 React Native 迭代速度比较快，核心框架还不是非常稳定，坑较多，所以要走的路还很长。\nWebView Hybrid 方案，在厂商浏览器性能提升之前，怎么达到 Native 的交互体验仍是比较严重的问题。为此手淘和百度（已经用于百度贴吧）给出的解决方案，是融合 Native 和 WebView，但是这样的 JS 和 Native 交互会很多，多 WebView 通信的问题需要接解决。\n刚才说到，React Native 迭代比较快，核心框架还不稳定，因此，如果在稳定之前采用 React Native，那么 React Native 框架更新 将是一个问题。同样的，WebView HyBrid 方案也存在缓存离线问题，包括手淘、蚂蚁金服和QZone，都使用 推拉结合 的方式，让离线资源尽快更新。\n\n最后，耳闻阿里自己搞了一个Weex框架，是 @勾股 带头搞的，类似于 React Native 框架的东西，但是更轻量，像是 Vue-Native (vue.js @尤小右)。具体的介绍，可以看 如何看待阿里无线前端发布的Weex?。 @winter 的回答，说明了开源计划和为什么放弃RN。（PS：话说，这个框架好像主要针对于电商场景）\nNodeJS 在大型场景中的应用和性能优化NodeJS，从前几年只被看好，到现在已经应用到类似大型业务项目中，竞争力逐渐显现。用 NodeJS 要比 Spring 好？比 PHP 快？这些都是相对于言的。NodeJS 已经用在了 天猫 和 Qzone 两个大型项目中，这足可以证明 NodeJS 的能力。\n\n@不四 讲了天猫的 NodeJS 方案，而腾讯的同学讲了 QZone 的方案。其实大同小异，主要的内容就几项：\n\n怎么处理高并发？\n怎么记录日志并快速还原场景？\n怎么友好地退出子进程？\n怎么做业务分层？\n怎么设计中间件？\n……\n\n其中，@不四 还分享了使用 Cluster 时的一些经验，例如，Master 只做进程管理，Worker 异常退出后自动重启逻辑使用的模块 cfork，Http 服务优雅退出的模块 graceful 等等。\n在其他会场，@朴灵 还分享了 AliNode 和 NodeJS 的性能优化经验，具体细节不再说了，涉及到更改 NodeJS 源码。同时，问题调试和定位 作为 NodeJS 服务器端最大痛点的一些处理经验。\n最后，其实回到一个问题，为什么用NodeJS？其实大部分答案是 因为前端所以Node， NodeJs 驱动的移动端的 H5 开发效率有很大优势，做接口合并、转发等逻辑，大大减小沟通成本。\nPS：使用 NodeJS 的原因其实是笔者脑洞的。其实他们选择用 NodeJS 的原因不仅仅为此，更多应该是业务场景的原因。以后需要前端同学更努力，才能使 NodeJS 更广泛的使用。\n工具关于工具，笔者关注了一下 Web接口管理工具RAP，一个阿里系的接口管理工具。\n\n有兴趣的同学可以关注下，简单看了一下，功能非常全，对于电商场景比较适用。\n\nGithub地址: https://github.com/thx/RAP\n\n笔者准备深入研究，构建一个适用于我司业务的Web接口管理工具。\n其他之前对 React JS 研究得并不深，所以分享只是大概了解下。\n而炫酷阿里的 DataV 数据可视化，可以参见 视频，这里也不多说了。\n总结今年的D2，主题是融合，火的是多端一体化开发。引用两句话做总结：(非原话，含义相似)\n\n@玄难：十年前写的Java代码现在还能用，十年前写的JS代码现在绝对用不了\n@打饭时碰到的路人甲：现在的前端团队不懂Native，是活不下去的（PS：只是意会，不是绝对）\n\n期待明年的D2。更多 D2 的内容，可以参看 参加第十届D2前端技术论坛，你有什么收获？ 中的答案。\n","dateCreated":"2015-12-21T00:00:00+08:00","dateModified":"2018-06-25T11:18:28+08:00","datePublished":"2015-12-21T00:00:00+08:00","description":"去杭州参加了，阿里巴巴第10届D2前端论坛，主题是『融合』，可以说受益匪浅。上一次D2，笔者是从自身技术的角度去听了分享，而此次，却是从团队技术方向和解决方案的角度去听，不同的角度有不同的收获。","headline":"2015阿里巴巴D2前端论坛-参会总结","image":["https://ws1.sinaimg.cn/large/006cGJIjly1fizh2ar55tj30dc07ot95.jpg"],"mainEntityOfPage":{"@type":"WebPage","@id":"https://e-lim.cn/20151221/"},"publisher":{"@type":"Organization","name":"Edwon Lim","sameAs":["https://ws3.sinaimg.cn/large/006tKfTcly1frsdntpo4aj30jb0ich0m.jpg","https://weibo.com/edwonlim","https://github.com/EdwonLim","mailto:edwon.lim@gmail.com","/books"],"image":"https://tvax4.sinaimg.cn/crop.0.0.512.512.180/71c50075ly8fxujicydtnj20e80e8aab.jpg","logo":{"@type":"ImageObject","url":"https://tvax4.sinaimg.cn/crop.0.0.512.512.180/71c50075ly8fxujicydtnj20e80e8aab.jpg"}},"url":"https://e-lim.cn/20151221/","keywords":"Mobile, D2","thumbnailUrl":"https://ws1.sinaimg.cn/large/006cGJIjly1fizh2ar55tj30dc07ot95.jpg"}</script>
     <meta name="description" content="去杭州参加了，阿里巴巴第10届D2前端论坛，主题是『融合』，可以说受益匪浅。上一次D2，笔者是从自身技术的角度去听了分享，而此次，却是从团队技术方向和解决方案的角度去听，不同的角度有不同的收获。">
 <meta name="keywords" content="Mobile,D2">
 <meta property="og:type" content="blog">
@@ -69,11 +69,10 @@
     </div>
     
         
-            <a  class="header-right-picture "
-                href="#about">
+            <a class="header-right-picture " href="#about">
         
         
-            <img class="header-picture" src="https://tvax4.sinaimg.cn/crop.0.0.512.512.180/71c50075ly8fxujicydtnj20e80e8aab.jpg" alt="作者的图片"/>
+            <img class="header-picture" src="https://tvax4.sinaimg.cn/crop.0.0.512.512.180/71c50075ly8fxujicydtnj20e80e8aab.jpg" alt="作者的图片">
         
         </a>
     
@@ -96,7 +95,7 @@
         
             <div class="sidebar-profile">
                 <a href="/#about">
-                    <img class="sidebar-profile-picture" src="https://tvax4.sinaimg.cn/crop.0.0.512.512.180/71c50075ly8fxujicydtnj20e80e8aab.jpg" alt="作者的图片"/>
+                    <img class="sidebar-profile-picture" src="https://tvax4.sinaimg.cn/crop.0.0.512.512.180/71c50075ly8fxujicydtnj20e80e8aab.jpg" alt="作者的图片">
                 </a>
                 <h4 class="sidebar-profile-name">Edwon Lim</h4>
                 
@@ -110,11 +109,7 @@
             
                 <li class="sidebar-button">
                     
-                        <a  class="sidebar-button-link "
-                             href="/ "
-                            
-                            title="首页"
-                        >
+                        <a class="sidebar-button-link " href="/ " title="首页">
                     
                         <i class="sidebar-button-icon fa fa-lg fa-home" aria-hidden="true"></i>
                         <span class="sidebar-button-desc">首页</span>
@@ -123,11 +118,7 @@
             
                 <li class="sidebar-button">
                     
-                        <a  class="sidebar-button-link "
-                             href="/all-categories"
-                            
-                            title="分类"
-                        >
+                        <a class="sidebar-button-link " href="/all-categories" title="分类">
                     
                         <i class="sidebar-button-icon fa fa-lg fa-bookmark" aria-hidden="true"></i>
                         <span class="sidebar-button-desc">分类</span>
@@ -136,11 +127,7 @@
             
                 <li class="sidebar-button">
                     
-                        <a  class="sidebar-button-link "
-                             href="/all-tags"
-                            
-                            title="标签"
-                        >
+                        <a class="sidebar-button-link " href="/all-tags" title="标签">
                     
                         <i class="sidebar-button-icon fa fa-lg fa-tags" aria-hidden="true"></i>
                         <span class="sidebar-button-desc">标签</span>
@@ -149,11 +136,7 @@
             
                 <li class="sidebar-button">
                     
-                        <a  class="sidebar-button-link "
-                             href="/all-archives"
-                            
-                            title="归档"
-                        >
+                        <a class="sidebar-button-link " href="/all-archives" title="归档">
                     
                         <i class="sidebar-button-icon fa fa-lg fa-archive" aria-hidden="true"></i>
                         <span class="sidebar-button-desc">归档</span>
@@ -162,11 +145,7 @@
             
                 <li class="sidebar-button">
                     
-                        <a  class="sidebar-button-link "
-                             href="#about"
-                            
-                            title="关于"
-                        >
+                        <a class="sidebar-button-link " href="#about" title="关于">
                     
                         <i class="sidebar-button-icon fa fa-lg fa-question" aria-hidden="true"></i>
                         <span class="sidebar-button-desc">关于</span>
@@ -179,16 +158,7 @@
             
                 <li class="sidebar-button">
                     
-                        <a  class="sidebar-button-link " href="https://ymfe.org" target="_blank" rel="noopener" title="YMFE">
-                    
-                        <i class="sidebar-button-icon fa fa-lg fa-users" aria-hidden="true"></i>
-                        <span class="sidebar-button-desc">YMFE</span>
-                    </a>
-            </li>
-            
-                <li class="sidebar-button">
-                    
-                        <a  class="sidebar-button-link " href="https://ws3.sinaimg.cn/large/006tKfTcly1frsdntpo4aj30jb0ich0m.jpg" target="_blank" rel="noopener" title="WeChat">
+                        <a class="sidebar-button-link " href="https://ws3.sinaimg.cn/large/006tKfTcly1frsdntpo4aj30jb0ich0m.jpg" target="_blank" rel="noopener" title="WeChat">
                     
                         <i class="sidebar-button-icon fa fa-lg fa-wechat" aria-hidden="true"></i>
                         <span class="sidebar-button-desc">WeChat</span>
@@ -197,7 +167,7 @@
             
                 <li class="sidebar-button">
                     
-                        <a  class="sidebar-button-link " href="https://weibo.com/edwonlim" target="_blank" rel="noopener" title="Weibo">
+                        <a class="sidebar-button-link " href="https://weibo.com/edwonlim" target="_blank" rel="noopener" title="Weibo">
                     
                         <i class="sidebar-button-icon fa fa-lg fa-weibo" aria-hidden="true"></i>
                         <span class="sidebar-button-desc">Weibo</span>
@@ -206,7 +176,7 @@
             
                 <li class="sidebar-button">
                     
-                        <a  class="sidebar-button-link " href="https://github.com/EdwonLim" target="_blank" rel="noopener" title="GitHub">
+                        <a class="sidebar-button-link " href="https://github.com/EdwonLim" target="_blank" rel="noopener" title="GitHub">
                     
                         <i class="sidebar-button-icon fa fa-lg fa-github" aria-hidden="true"></i>
                         <span class="sidebar-button-desc">GitHub</span>
@@ -215,10 +185,19 @@
             
                 <li class="sidebar-button">
                     
-                        <a  class="sidebar-button-link " href="mailto:edwon.lim@gmail.com" target="_blank" rel="noopener" title="邮箱">
+                        <a class="sidebar-button-link " href="mailto:edwon.lim@gmail.com" target="_blank" rel="noopener" title="E-mail">
                     
                         <i class="sidebar-button-icon fa fa-lg fa-envelope-o" aria-hidden="true"></i>
-                        <span class="sidebar-button-desc">邮箱</span>
+                        <span class="sidebar-button-desc">E-mail</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a class="sidebar-button-link " href="/books" title="Books">
+                    
+                        <i class="sidebar-button-icon fa fa-lg fa-book" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">Books</span>
                     </a>
             </li>
             
@@ -249,6 +228,7 @@
     
     
         <div class="post-meta">
+    
     <time datetime="2015-12-21T00:00:00+08:00">
 	
 		    2015 年 12 月 21 日
@@ -264,6 +244,7 @@
     
     。
     <span>文章共 2,466 字，大约需要阅读 9 分钟。</span>
+    
     
 </div>
 
@@ -361,7 +342,7 @@
     <div id="post-footer" class="post-footer main-content-wrap">
         
             <div class="post-footer-tags">
-                <span class="text-color-light text-small">标签</span><br/>
+                <span class="text-color-light text-small">标签</span><br>
                 
     <a class="tag tag--primary tag--small t-link" href="/tags/D2/">D2</a> <a class="tag tag--primary tag--small t-link" href="/tags/Mobile/">Mobile</a>
 
@@ -370,6 +351,7 @@
         
             <div class="post-actions-wrap">
     <nav>
+        
         <ul class="post-actions post-action-nav">
             <li class="post-action">
                 
@@ -390,6 +372,7 @@
                 </a>
             </li>
         </ul>
+        
     </nav>
     <ul class="post-actions post-action-share">
         <li class="post-action hide-lg hide-md hide-sm">
@@ -454,6 +437,7 @@
                 <div id="bottom-bar" class="post-bottom-bar" data-behavior="4">
                     <div class="post-actions-wrap">
     <nav>
+        
         <ul class="post-actions post-action-nav">
             <li class="post-action">
                 
@@ -474,6 +458,7 @@
                 </a>
             </li>
         </ul>
+        
     </nav>
     <ul class="post-actions post-action-share">
         <li class="post-action hide-lg hide-md hide-sm">
@@ -567,7 +552,7 @@
             <i class="fa fa-remove"></i>
         </div>
         
-            <img id="about-card-picture" src="https://tvax4.sinaimg.cn/crop.0.0.512.512.180/71c50075ly8fxujicydtnj20e80e8aab.jpg" alt="作者的图片"/>
+            <img id="about-card-picture" src="https://tvax4.sinaimg.cn/crop.0.0.512.512.180/71c50075ly8fxujicydtnj20e80e8aab.jpg" alt="作者的图片">
         
             <h4 id="about-card-name">Edwon Lim</h4>
         
@@ -577,7 +562,7 @@
         
             <div id="about-card-job">
                 <i class="fa fa-briefcase"></i>
-                <br/>
+                <br>
                 <p>大前端 · 架构</p>
 
             </div>
@@ -585,7 +570,7 @@
         
             <div id="about-card-location">
                 <i class="fa fa-map-marker"></i>
-                <br/>
+                <br>
                 中国 · 北京
             </div>
         

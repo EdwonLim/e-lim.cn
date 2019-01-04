@@ -44,6 +44,7 @@ global:
         zero: "没有找到标签"
         one: "找到 1 个标签"
         other: "找到 {n} 个标签"
+    top: '首页'
 
 
 pagination:

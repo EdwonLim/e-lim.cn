@@ -57,10 +57,10 @@ sidebar:
             url: /#about
             icon: question
     author_links:
-        team:
-            title: YMFE
-            url: https://ymfe.org
-            icon: users
+        # team:
+        #     title: YMFE
+        #     url: https://ymfe.org
+        #     icon: users
         wechat:
             title: WeChat
             url: https://ws3.sinaimg.cn/large/006tKfTcly1frsdntpo4aj30jb0ich0m.jpg
@@ -94,9 +94,13 @@ sidebar:
         #     url: https://www.linkedin.com/profile/
         #     icon: linkedin
         mail:
-            title: global.mail
+            title: E-mail
             url: mailto:edwon.lim@gmail.com
             icon: envelope-o
+        books:
+            title: Books
+            url: /books
+            icon: book
     # rss:
     #     rss:
     #         title: global.rss

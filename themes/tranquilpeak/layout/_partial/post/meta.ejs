@@ -1,4 +1,5 @@
 <div class="<%= (classes ? classes.join(' ') : '') %>">
+    <% if (post.date) { %>
     <time datetime="<%= post.date.format() %>">
 	<% if (post.lang) { %>
 		    <%= post.date.locale(post.lang).format(__('date_format')) %>
@@ -13,5 +14,6 @@
     <% if (!is_home()) { %>
     。
     <span>文章共 <%= wordcount(post.content) %> 字，大约需要阅读 <%= min2read(post.content) %> 分钟。</span>
+    <% } %>
     <% } %>
 </div>

@@ -75,7 +75,11 @@ pagination_dir: page
 ## Themes: https://hexo.io/themes/
 theme: tranquilpeak
 
-# Deployment
-## Docs: https://hexo.io/docs/deployment.html
-deploy:
-  type:
+# Douban
+douban:
+  user: 51845313
+  builtin: true
+  book:
+    title: 'Books'
+    quote: ''
+  timeout: 10000 
