@@ -645,9 +645,6 @@ layout: false
                 return res;
             };
 
-            const isWeiXin = navigator.userAgent.toLowerCase().match(/MicroMessenger/i) === 'micromessenger';
-
-
             const handleChange = (e) => {
                 const id = e.target.id;
                 const opt = inputOpts[id];
@@ -656,11 +653,6 @@ layout: false
                 }
                 var cache = $('form').formcache('serialize');
                 $('form').formcache('setCache', cache);
-                if (isWeiXin) {
-                    location.href = "/eicalc.html?data=" + encodeURIComponent(JSON.stringify(cache));
-                } else {
-                    history.replaceState(null, document.title, "/eicalc.html?data=" + encodeURIComponent(JSON.stringify(cache)));
-                }
             };
 
             $(() => {
@@ -678,13 +670,6 @@ layout: false
                 });
 
                 $('form').delegate('input,select', 'change', handleChange);
-                const data = $.url().param('data');
-                if (data) {
-                    try {
-                        const cache = JSON.parse(decodeURIComponent(data));
-                        $('form').formcache('setCache', cache);
-                    } catch(e) {}
-                }
                 $('form').formcache('outputCache');
                 changeInfo1();
                 changeInfo2();
