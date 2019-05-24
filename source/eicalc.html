@@ -645,6 +645,8 @@ layout: false
                 return res;
             };
 
+            const isWeiXin = navigator.userAgent.toLowerCase().match(/MicroMessenger/i) === 'micromessenger';
+
 
             const handleChange = (e) => {
                 const id = e.target.id;
@@ -654,7 +656,11 @@ layout: false
                 }
                 var cache = $('form').formcache('serialize');
                 $('form').formcache('setCache', cache);
-                history.pushState(null, document.title, "/eicalc.html?data=" + encodeURIComponent(JSON.stringify(cache)));
+                if (isWeiXin) {
+                    location.href = "/eicalc.html?data=" + encodeURIComponent(JSON.stringify(cache));
+                } else {
+                    history.replaceState(null, document.title, "/eicalc.html?data=" + encodeURIComponent(JSON.stringify(cache)));
+                }
             };
 
             $(() => {
