@@ -638,7 +638,7 @@
                 }
                 var cache = $('form').formcache('serialize');
                 $('form').formcache('setCache', cache);
-                history.replaceState(null, document.title, "/eicalc.html?data=" + encodeURIComponent(JSON.stringify(cache)));
+                history.pushState(null, document.title, "/eicalc.html?data=" + encodeURIComponent(JSON.stringify(cache)));
             };
 
             $(() => {
