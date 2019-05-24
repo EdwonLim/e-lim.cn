@@ -1,0 +1,682 @@
+---
+layout: false
+---
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <link rel="stylesheet" href="https://cdn.bootcss.com/bootstrap/4.0.0/css/bootstrap.min.css" />
+
+    <title>Estate investment calculator</title>
+</head>
+
+<body>
+    <nav class="navbar navbar-light bg-light">
+        <span class="navbar-brand mb-0 h1" style="margin: 0 auto">房产投资计算器</span>
+    </nav>
+    <div class="container">
+        <form data-toggle="formcache">
+            <div class="form-group">
+                <label for="price">单价</label>
+                <div class="input-group mb-3">
+                    <input type="number" class="form-control" name="price" id="price" aria-describedby="priceHelp"
+                        placeholder="输入房产单价" value="10000" style="text-align: right">
+                    <div class="input-group-append">
+                        <span class="input-group-text">元</span>
+                    </div>
+                </div>
+                <small id="priceHelp" class="form-text text-muted">房产单价</small>
+            </div>
+            <div class="form-group">
+                <label for="area">面积</label>
+                <div class="input-group mb-3">
+                    <input type="number" class="form-control" name="area" id="area" aria-describedby="areaHelp"
+                        placeholder="输入房产面积" value="90" style="text-align: right">
+                    <div class="input-group-append">
+                        <span class="input-group-text">平</span>
+                    </div>
+                </div>
+                <small id="areaHelp" class="form-text text-muted">房产面积</small>
+            </div>
+            <div class="form-group">
+                <label for="pay">首付</label>
+                <div class="input-group mb-3">
+                    <input type="number" class="form-control" name="pay" id="pay" aria-describedby="payHelp"
+                        placeholder="输入首付金额" value="270000" style="text-align: right">
+                    <div class="input-group-append">
+                        <span class="input-group-text">元</span>
+                    </div>
+                </div>
+                <small id="payHelp" class="form-text text-muted">首付，默认房产总价 30%</small>
+            </div>
+            <div class="form-group">
+                <label for="other">手续费、契税等支出</label>
+                <div class="input-group mb-3">
+                    <input type="number" class="form-control" name="other" id="other" aria-describedby="otherHelp"
+                        placeholder="输入手续费、契税等支出金额" value="18000" style="text-align: right">
+                    <div class="input-group-append">
+                        <span class="input-group-text">元</span>
+                    </div>
+                </div>
+                <small id="otherHelp" class="form-text text-muted">手续费，默认房产总价 2%（1% 契税，1% 公共维修基金）</small>
+            </div>
+            <div class="alert alert-success" role="alert">
+                【房产信息】<br />
+                <span id="info1"></span>
+            </div>
+            <hr />
+            <div class="form-group">
+                <label for="rate">房贷利率</label>
+                <div class="input-group mb-3">
+                    <input type="number" class="form-control" name="rate" id="rate" aria-describedby="rateHelp"
+                        placeholder="输入手续费、契税等支出金额" value="4.9" step="0.01" style="text-align: right">
+                    <div class="input-group-append">
+                        <span class="input-group-text">%</span>
+                    </div>
+                </div>
+                <small id="rateHelp" class="form-text text-muted">房贷，默认：4.9，商贷基准利率</small>
+            </div>
+            <div class="form-group">
+                <label for="float">利率浮动</label>
+                <select class="form-control" name="float" id="float" aria-describedby="floatHelp">
+                    <option value="0.80">八折优惠( -20% )</option>
+                    <option value="0.85">八五折优惠( -15% )</option>
+                    <option value="0.90">九折优惠( -10% )</option>
+                    <option value="0.95">九五折优惠( -5% )</option>
+                    <option value="1.00" selected>正常利率( +0% )</option>
+                    <option value="1.05">上浮5个点( +5% )</option>
+                    <option value="1.10">上浮10个点( +10% )</option>
+                    <option value="1.15">上浮15个点( +15% )</option>
+                    <option value="1.20">上浮20个点( +20% )</option>
+                </select>
+                <small id="floatHelp" class="form-text text-muted">利率浮动，默认不上浮也不打折</small>
+            </div>
+            <div class="form-group">
+                <label for="year">贷款年限</label>
+                <div class="input-group mb-3">
+                    <input type="number" class="form-control" name="year" id="year" aria-describedby="yearHelp"
+                        placeholder="输入贷款年限" value="25" style="text-align: right">
+                    <div class="input-group-append">
+                        <span class="input-group-text">年</span>
+                    </div>
+                </div>
+                <small id="yearHelp" class="form-text text-muted">贷款年限，单位：年，默认25，当前最长年数</small>
+            </div>
+            <div class="alert alert-success" role="alert">
+                【贷款信息】<br />
+                <span id="info2"></span>
+            </div>
+            <hr />
+            <div class="form-group">
+                <label for="get">交房时间</label>
+                <div class="input-group mb-3">
+                    <input type="number" class="form-control" name="get" id="get" aria-describedby="getHelp"
+                        placeholder="输入交房时间" value="0" style="text-align: right">
+                    <div class="input-group-append">
+                        <span class="input-group-text">年</span>
+                    </div>
+                </div>
+                <small id="getHelp" class="form-text text-muted">几年后交房，单位：年，除期房，都是 0</small>
+            </div>
+            <div class="form-group">
+                <label for="sell">预计卖房时间</label>
+                <div class="input-group mb-3">
+                    <input type="number" class="form-control" name="sell" id="sell" aria-describedby="sellHelp"
+                        placeholder="输入预计卖房时间" value="5" style="text-align: right">
+                    <div class="input-group-append">
+                        <span class="input-group-text">年</span>
+                    </div>
+                </div>
+                <small id="sellHelp" class="form-text text-muted">几年后卖房，单位：年，默认交房时间 + 5（满五）</small>
+            </div>
+            <div class="alert alert-success" role="alert">
+                【卖房时成本信息】<br />
+                <span id="info3"></span>
+            </div>
+            <hr />
+            <div class="form-group">
+                <label for="expenditure">每年持有支出</label>
+                <div class="input-group mb-3">
+                    <input type="number" class="form-control" name="expenditure" id="expenditure"
+                        aria-describedby="expenditureHelp" placeholder="输入预计卖房时间" value="0" style="text-align: right">
+                    <div class="input-group-append">
+                        <span class="input-group-text">元</span>
+                    </div>
+                </div>
+                <small id="expenditureHelp" class="form-text text-muted">每年持有房屋的花费，单位：元，包括物业费、暖气费、交通费等</small>
+            </div>
+            <div class="form-group">
+                <label for="income">每年营租收入</label>
+                <div class="input-group mb-3">
+                    <input type="number" class="form-control" name="income" id="income" aria-describedby="incomeHelp"
+                        placeholder="输入每年营租收入" value="0" style="text-align: right">
+                    <div class="input-group-append">
+                        <span class="input-group-text">元</span>
+                    </div>
+                </div>
+                <small id="incomeHelp" class="form-text text-muted">每年营租收入，单位：元，包括租房、Airbnb 等</small>
+            </div>
+            <div class="alert alert-success" role="alert">
+                【核算支出/收入金额】<br />
+                <span id="info4"></span>
+            </div>
+            <hr />
+            <div class="form-group">
+                <label for="3rate">银行定期利率（大于等于 3 年）</label>
+                <div class="input-group mb-3">
+                    <input type="number" class="form-control" name="3rate" id="3rate" aria-describedby="3rateHelp"
+                        placeholder="输入定期利率" value="4" style="text-align: right">
+                    <div class="input-group-append">
+                        <span class="input-group-text">%</span>
+                    </div>
+                </div>
+                <small id="3rateHelp" class="form-text text-muted">银行定期利率，超过 3 年的，利率都差不多，粗算一下。</small>
+            </div>
+            <div class="form-group">
+                <label for="1rate">银行定期利率（小于 3 年）</label>
+                <div class="input-group mb-3">
+                    <input type="number" class="form-control" name="1rate" id="1rate" aria-describedby="1rateHelp"
+                        placeholder="输入定期利率" value="2" style="text-align: right">
+                    <div class="input-group-append">
+                        <span class="input-group-text">%</span>
+                    </div>
+                </div>
+                <small id="1rateHelp" class="form-text text-muted">银行定期利率，不到 3 年的，利率都差不多，粗算一下。</small>
+            </div>
+            <div class="alert alert-success" role="alert">
+                【利息收入】<br />
+                <span id="info5"></span>
+            </div>
+            <hr />
+            <div class="form-group">
+                <label for="swell">通货膨胀率</label>
+                <div class="input-group mb-3">
+                    <input type="number" class="form-control" name="swell" id="swell" aria-describedby="swellHelp"
+                        placeholder="输入通货膨胀率" value="7" style="text-align: right">
+                    <div class="input-group-append">
+                        <span class="input-group-text">%</span>
+                    </div>
+                </div>
+                <small id="swellHelp" class="form-text text-muted">通货膨胀率，决定于政府调控，一般通货膨胀率是 7%，各国基本一致。</small>
+            </div>
+            <!-- <p class="text-center">
+                <button type="submit" class="btn btn-primary">分析计算</button>
+            </p> -->
+            <div class="alert alert-success" role="alert">
+                【通膨抵消】<br />
+                <span id="info6"></span>
+            </div>
+            <hr />
+            <div class="alert alert-primary" role="alert">
+                【信息汇总】<br />
+                <span id="info7"></span>
+            </div>
+            <div class="alert alert-danger" role="alert">
+                【卖时成本】<br />
+                <span id="info8"></span>
+            </div>
+            <div class="alert alert-warning" role="alert">
+                【收益计算】<br />
+                <span id="info9"></span>
+            </div>
+            <hr />
+        </form>
+    </div>
+
+    <script src="https://cdn.bootcss.com/jquery/3.2.1/jquery.slim.min.js"></script>
+    <script src="https://cdn.bootcss.com/popper.js/1.12.9/umd/popper.min.js"></script>
+    <script src="https://cdn.bootcss.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+    <script>
+        /*!
+         * Form Cache v0.0.3
+         * https://github.com/fengyuanchen/formcache
+         *
+         * Copyright 2014 Fengyuan Chen
+         * Released under the MIT license
+         *
+         * Date: 2014-12-17T12:42:29.194Z
+         */
+        ! function (a) {
+            "function" == typeof define && define.amd ? define("formcache", ["jquery"], a) : a(jQuery)
+        }(function (a) {
+            "use strict";
+            var b = a(window),
+                c = window.sessionStorage,
+                d = window.localStorage,
+                e = "undefined",
+                f = ".formcache",
+                g = /[\.\*\+\^\$\:\!\[\]#>~]+/g,
+                h = "change" + f,
+                i = "beforeunload" + f,
+                j = function (a) {
+                    return "checkbox" === a.type || "radio" === a.type
+                },
+                k = function (a) {
+                    return parseInt(a, 10)
+                },
+                l = function (b, c) {
+                    this.form = b, this.$form = a(b), this.defaults = a.extend({}, l.DEFAULTS, a.isPlainObject(c) ?
+                        c : {}), this.init()
+                };
+            l.prototype = {
+                    constructor: l,
+                    init: function () {
+                        var b = this.defaults;
+                        b.maxAge = Math.abs(b.maxAge || b.maxage), b.autoStore = Boolean(b.autoStore || b
+                                .autostore), this.initKey(), this.initStorage(), this.caches = this.storage
+                            .caches, this.index = 0, this.activeIndex = 0, this.storing = null, a.isArray(b
+                                .controls) || (b.controls = []), this.$controls = this.$form.find(b.controls
+                                .join()).not(":file"), this.addListeners(), this.outputCache()
+                    },
+                    initKey: function () {
+                        var b = this.$form,
+                            c = this.defaults.key || b.data("key");
+                        c || (a("form").each(function (b) {
+                            a(this).data("key", b)
+                        }), c = b.data("key")), this.key = location.pathname + "#formcache-" + c
+                    },
+                    initStorage: function () {
+                        var b, e = this.defaults,
+                            f = this.key,
+                            g = new Date,
+                            h = {
+                                date: g,
+                                maxAge: e.maxAge,
+                                caches: []
+                            };
+                        c && (b = c.getItem(f)), !b && d && (b = d.getItem(f)), b = "string" == typeof b ? JSON
+                            .parse(b) : null, a.isPlainObject(b) ? "number" == typeof b.maxAge && (g - new Date(
+                                b.date)) / 1e3 > b.maxAge && (b = h) : b = h, this.storage = b
+                    },
+                    addListeners: function () {
+                        this.defaults.autoStore && (this.$controls.on(h, a.proxy(this.change, this)), b.on(i, a
+                            .proxy(this.beforeunload, this)))
+                    },
+                    removeListeners: function () {
+                        this.defaults.autoStore && (this.$controls.off(h, this.change), b.off(i, this
+                            .beforeunload))
+                    },
+                    change: function (b) {
+                        var c, d, e = b.target,
+                            f = a(e),
+                            h = f.attr("name"),
+                            i = [];
+                        h && (c = h.replace(g, ""), this.$controls.filter('[name*="' + c + '"]').each(
+                            function () {
+                                j(e) ? i.push(this.checked) : (d = a(this).val(), d && i.push(d))
+                            }), i.length && (this.update(h, i), clearTimeout(this.storing), this
+                            .storing =
+                            setTimeout(a.proxy(this.store, this), 1e3)))
+                    },
+                    beforeunload: function () {
+                        this.update(), this.store()
+                    },
+                    update: function (a, b) {
+                        var c = this.activeIndex || this.index,
+                            d = this.getCache(c);
+                        "string" == typeof a ? d[a] = b : d = this.serialize(), this.setCache(c, d)
+                    },
+                    serialize: function () {
+                        var b = {};
+                        return this.$controls.each(function () {
+                            var c, d, e = a(this),
+                                f = e.attr("name");
+                            f && (c = b[f], c = a.isArray(c) ? c : [], j(this) ? c.push(this.checked) :
+                                (d = e.val(), d && c.push(d)), c.length && (b[f] = c))
+                        }), b
+                    },
+                    getCache: function (a) {
+                        return this.caches[k(a) || this.index] || {}
+                    },
+                    getCaches: function () {
+                        return this.caches
+                    },
+                    setCache: function (b, c) {
+                        typeof c === e && (c = b, b = 0 / 0), a.isPlainObject(c) && (b = k(b) || this.index,
+                            this.caches[b] = c, this.store())
+                    },
+                    setCaches: function (b) {
+                        a.isArray(b) && (this.caches = b, this.store())
+                    },
+                    removeCache: function (a) {
+                        this.caches.splice(k(a) || this.index, 1), this.store()
+                    },
+                    removeCaches: function () {
+                        this.caches = [], this.store()
+                    },
+                    outputCache: function (b) {
+                        var c = this.getCache(b);
+                        a.isPlainObject(c) && (this.activeIndex = k(b) || this.index, c = a.extend(!0, {}, c),
+                            this.$controls.each(function () {
+                                var b, d, e = a(this),
+                                    f = e.attr("name");
+                                f && (b = c[f], a.isArray(b) && b.length && (d = b.shift(), j(this) ?
+                                    this.checked = d : e.val(d)))
+                            }))
+                    },
+                    store: function () {
+                        var a = this.storage,
+                            b = this.key,
+                            e = this.defaults;
+                        a.date = new Date, a.maxAge = e.maxAge, a = JSON.stringify(a), e.session && c && c
+                            .setItem(b, a), e.local && d && d.setItem(b, a)
+                    },
+                    clear: function () {
+                        var a = this.key,
+                            b = this.defaults;
+                        b.session && c && c.removeItem(a), b.local && d && d.removeItem(a)
+                    },
+                    destroy: function () {
+                        this.removeListeners(), this.$form.removeData("formcache")
+                    }
+                }, l.DEFAULTS = {
+                    key: "",
+                    local: !0,
+                    session: !0,
+                    autoStore: !0,
+                    maxAge: void 0,
+                    controls: ["select", "textarea", "input"]
+                }, l.setDefaults = function (b) {
+                    a.extend(l.DEFAULTS, b)
+                }, l.other = a.fn.formcache, a.fn.formcache = function (b) {
+                    var c, d = [].slice.call(arguments, 1);
+                    return this.each(function () {
+                        var e, f = a(this),
+                            g = f.data("formcache");
+                        g || f.data("formcache", g = new l(this, b)), "string" == typeof b && a.isFunction(
+                            e = g[b]) && (c = e.apply(g, d))
+                    }), typeof c !== e ? c : this
+                }, a.fn.formcache.Constructor = l, a.fn.formcache.setDefaults = l.setDefaults, a.fn.formcache
+                .noConflict = function () {
+                    return a.fn.formcache = l.other, this
+                }, a(function () {
+                    a('form[data-toggle="formcache"]').formcache()
+                })
+        });
+    </script>
+    <script>
+        (() => {
+            const cache = {};
+            // 计算
+            const getLoan = () => {
+                const values = getValues();
+                const loan = values.area * values.price - values.pay;
+                return loan;
+            };
+
+            const getSupply = () => {
+                const values = getValues();
+                const monthRate = values.rate * values.float / 12 / 100;
+                const loan = getLoan();
+                const supply = loan * monthRate * Math.pow(1 + monthRate, values.year * 12) / (Math.pow(1 + monthRate,
+                    values.year * 12) - 1);
+                return supply;
+            };
+
+            const getTotalRepay = () => {
+                const values = getValues();
+                const monthRate = values.rate * values.float / 12 / 100;
+                const loan = getLoan();
+                const supply = getSupply();
+
+                let total = 0;
+                for (let i = 1; i <= values.sell * 12; i++) {
+                    total += supply - (loan * monthRate * (Math.pow(1 + monthRate, values.year * 12) - Math.pow(1 +
+                        monthRate, i - 1))) / (Math.pow(1 + monthRate, values.year * 12) - 1);
+                }
+
+                return total;
+            };
+
+            const getBankIncome = () => {
+                const values = getValues();
+                const rate3 = values['3rate'] / 100;
+                const rate1 = values['1rate'] / 100;
+                const payment = values.pay + values.other;
+                const supply = getSupply();
+                let total = payment * values.sell * rate3;
+                for (let i = values.sell - 1; i >= 3; i --) {
+                    total += supply * 12 * values.sell * rate3;
+                }
+                total += supply * 12 * 3 * rate1;
+                return total;
+            };
+
+            const getSwell = () => {
+                const values = getValues();
+                const supply = getSupply();
+                const swellRate = values.swell / 100;
+                let base = values.pay + values.other;
+                let total = base * Math.pow(1 +　swellRate, 8);
+                for (let i = values.sell - 1; i >= 1; i --) {
+                    base += supply * 12;
+                    total += supply * 12 * Math.pow(1 +　swellRate, i);
+                }
+                return total - base;
+            };
+
+            // 关联
+            const changePay = () => {
+                const values = getValues();
+                $(`#pay`).val((values.area * values.price) * 0.3);
+            };
+
+            const changeOther = () => {
+                const values = getValues();
+                $(`#other`).val((values.area * values.price) * 0.02);
+            };
+
+            const changeSell = () => {
+                const values = getValues();
+                $(`#sell`).val(parseInt(values.get) + 5);
+            };
+
+            // 分析
+            const changeInfo1 = () => {
+                const values = getValues();
+                $('#info1').html(
+                    `总价 ${(values.area * values.price / 10000).toFixed(2)} 万元，首付 ${((values.pay + values.other) / 10000).toFixed(2)} 万元，贷款 ${((values.area * values.price - values.pay) / 10000).toFixed(2)} 万元。`
+                );
+                cache.total = (values.area * values.price / 10000).toFixed(2);
+                cache.payment = ((values.pay + values.other) / 10000).toFixed(2);
+                cache.liabilities = ((values.area * values.price - values.pay) / 10000).toFixed(2);
+                changeInfo3();
+                changeInfo7();
+            };
+
+            const changeInfo2 = () => {
+                const values = getValues();
+                const loan = getLoan();
+                const supply = getSupply();
+                $('#info2').html(
+                    `· 年利率 ${(values.rate * values.float).toFixed(2)}%，年限 ${values.year} 年（ ${values.year * 12} 个月）。<br/>` + 
+                    `· 等额本息月供 ${supply.toFixed(2)} 元，利息总和为 ${((supply * values.year * 12 - loan) / 10000).toFixed(2)} 万元。`
+                    );
+                cache.supply = supply.toFixed(2);
+                changeInfo3();
+                changeInfo7();
+            };
+
+            const changeInfo3 = () => {
+                const values = getValues();
+                const loan = getLoan();
+                const supply = getSupply();
+                const totalRepay = getTotalRepay();
+                const total = values.pay + values.other + values.sell * 12 * supply + loan - totalRepay;
+                $('#info3').html(
+                    `· 已经还款 ${values.sell * 12} 个月， 共还款 ${(values.sell * 12 * supply / 10000).toFixed(2)} 万元, 供还本金 ${(totalRepay / 10000).toFixed(2)} 万元，剩余本金 ${((loan - totalRepay) / 10000).toFixed(2)} 万元。<br/>` +
+                    `· 总成本为：${values.pay + values.other}(首付) + ${(values.sell * 12 * supply).toFixed(2)}(还款) + ${(loan - totalRepay).toFixed(2)}(剩余本金) = ${(total).toFixed(2)} 元 = ${(total / 10000).toFixed(2)} 万元。<br/>` +
+                    `· 对应每平单价为： ${(total / values.area).toFixed(0)} 元。`
+                );
+                cache.cost = total;
+                changeInfo4();
+                changeInfo5();
+                changeInfo6();
+            };
+
+            const changeInfo4 = () => {
+                const values = getValues();
+                $('#info4').html(
+                    `共营收 ${(values.income - values.expenditure) * (values.sell - values.get)} 元，对应每平减少成本 ${(((values.income - values.expenditure) * (values.sell - values.get)) / values.area).toFixed(0)} 元。`
+                    );
+                cache.totalIncome = (values.income - values.expenditure) * (values.sell - values.get);
+                changeInfo8();
+            };
+
+            const changeInfo5 = () => {
+                const values = getValues();
+                const bankIncome = getBankIncome();
+                $('#info5').html(
+                    `首付存定期，月供每年一次存定期，直接存到卖房时，获得的利息为 ${(bankIncome / 10000).toFixed(2)} 万元，对应每平增加成本 ${(bankIncome / values.area).toFixed(0)} 元。`
+                    );
+                changeInfo9();
+            };
+
+            const changeInfo6 = () => {
+                const values = getValues();
+                const swell = getSwell();
+                $('#info6').html(
+                    `抵消通货膨胀，需要增加收入 ${(swell / 10000).toFixed(2)} 万元，平均每平米需再增长 ${(swell / values.area).toFixed(0)} 元。`
+                    );
+                changeInfo9();
+            };
+
+            const changeInfo7 = () => {
+                const values = getValues();
+                $('#info7').html([
+                    `<ul>`, 
+                        `<li>总价：${cache.total} 万元</li>`,
+                        `<li>单价：${values.price} 元</li>`,
+                        `<li>首付：${cache.payment} 万元</li>`,
+                        `<li>贷款：${cache.liabilities} 万元</li>`,
+                        `<li>月供：${cache.supply} 元</li>`,
+                    `</ul>`
+                ].join(''));
+            };
+
+            const changeInfo8 = () => {
+                const values = getValues();
+                $('#info8').html([
+                    `<ul>`, 
+                        `<li>成本：${((cache.cost - cache.totalIncome) / 10000).toFixed(2)} 万元</li>`,
+                        `<li>单价：${((cache.cost - cache.totalIncome) / values.area).toFixed(0)} 元</li>`,
+                    `</ul>`
+                ].join(''));
+
+            };
+
+            const changeInfo9 = () => {
+                const values = getValues();
+                $('#info9').html([
+                    `<ul>`, 
+                        `<li>总价达到 ${((cache.cost - cache.totalIncome + getBankIncome()) / 10000).toFixed(2)} 万元，能与银行定期收益持平，对应单价为 ${((cache.cost - cache.totalIncome + getBankIncome()) / values.area).toFixed(0)} 元。</li>`,
+                        `<li>总价达到 ${((cache.cost - cache.totalIncome + getSwell()) / 10000).toFixed(2)} 万元，能抵消通货膨胀，对应单价为 ${((cache.cost - cache.totalIncome + getSwell()) / values.area).toFixed(0)} 元。</li>`,
+                    `</ul>`
+                ].join(''));
+            };
+
+            const inputOpts = {
+                price: {
+                    default: 10000,
+                    change: [changePay, changeOther, changeInfo1]
+                },
+                area: {
+                    default: 90,
+                    change: [changePay, changeOther, changeInfo1]
+                },
+                pay: {
+                    default: 270000,
+                    change: [changeInfo1]
+                },
+                other: {
+                    default: 18000,
+                    change: [changeInfo1]
+                },
+                rate: {
+                    default: 4.9,
+                    change: [changeInfo2]
+                },
+                float: {
+                    default: '1.00',
+                    change: [changeInfo2]
+                },
+                year: {
+                    default: 25,
+                    change: [changeInfo2]
+                },
+                get: {
+                    default: 0,
+                    change: [changeSell, changeInfo3]
+                },
+                sell: {
+                    default: 5,
+                    change: [changeInfo3]
+                },
+                expenditure: {
+                    default: 0,
+                    change: [changeInfo4]
+                },
+                income: {
+                    default: 0,
+                    change: [changeInfo4]
+                },
+                '3rate': {
+                    default: 4,
+                    change: [changeInfo5]
+                },
+                '1rate': {
+                    default: 2,
+                    change: [changeInfo5]
+                },
+                swell: {
+                    default: 7,
+                    change: [changeInfo6]
+                }
+            };
+
+            const getValues = () => {
+                const res = {};
+                Object.keys(inputOpts).forEach((key) => {
+                    res[key] = parseFloat($(`#${key}`).val());
+                });
+                return res;
+            };
+
+
+            const handleChange = (e) => {
+                const id = e.target.id;
+                const opt = inputOpts[id];
+                if (opt.change) {
+                    [].concat(opt.change).forEach(t => t());
+                }
+                var cache = $('form').formcache('serialize');
+                $('form').formcache('setCache', cache);
+            };
+
+            $(() => {
+                $('form').delegate('input', 'focus', (e) => {
+                    const value = e.target.value;
+                    e.target.value = '';
+                    const onblur = () => {
+                        if (isNaN(parseFloat(e.target.value))) {
+                            e.target.value = value;
+                            handleChange(e);
+                        }
+                        e.target.removeEventListener('blur', onblur);
+                    };
+                    e.target.addEventListener('blur', onblur, false);
+                });
+
+                $('form').delegate('input,select', 'change', handleChange);
+
+                $('#form').formcache();
+                changeInfo1();
+                changeInfo2();
+            });
+        })();
+    </script>
+</body>
+
+</html>
