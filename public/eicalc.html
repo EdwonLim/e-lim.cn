@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <link rel="stylesheet" href="https://cdn.bootcss.com/bootstrap/4.0.0/css/bootstrap.min.css">
 
-    <title>Estate investment calculator</title>
+    <title>Estate Investment Calculator</title>
 </head>
 
 <body>
@@ -212,6 +212,7 @@
     <script src="https://cdn.bootcss.com/jquery/3.2.1/jquery.slim.min.js"></script>
     <script src="https://cdn.bootcss.com/popper.js/1.12.9/umd/popper.min.js"></script>
     <script src="https://cdn.bootcss.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+    <script src="https://cdn.bootcss.com/jquery-url-parser/2.3.1/purl.min.js"></script>
     <script>
         /*!
          * Form Cache v0.0.3
@@ -637,6 +638,7 @@
                 }
                 var cache = $('form').formcache('serialize');
                 $('form').formcache('setCache', cache);
+                history.replaceState(null, document.title, "/eicalc.html?data=" + encodeURIComponent(JSON.stringify(cache)));
             };
 
             $(() => {
@@ -654,8 +656,14 @@
                 });
 
                 $('form').delegate('input,select', 'change', handleChange);
-
-                $('#form').formcache();
+                const data = $.url().param('data');
+                if (data) {
+                    try {
+                        const cache = JSON.parse(decodeURIComponent(data));
+                        $('form').formcache('setCache', cache);
+                    } catch(e) {}
+                }
+                $('form').formcache('outputCache');
                 changeInfo1();
                 changeInfo2();
             });
