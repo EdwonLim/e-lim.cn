@@ -1,0 +1,576 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+    
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="E-Lim 的博客">
+    <title>【译】如何在 JavaScript 中使用强大的复合函数 - E-Lim 的博客</title>
+    <meta name="author" content="Edwon Lim">
+    <meta name="referrer" content="no-referrer" data-react-helmet="true">
+    
+    
+    
+    <script type="application/ld+json">{"@context":"http://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"Edwon Lim","sameAs":["https://ws3.sinaimg.cn/large/006tKfTcly1frsdntpo4aj30jb0ich0m.jpg","https://weibo.com/edwonlim","https://github.com/EdwonLim","mailto:edwon.lim@gmail.com","/books"],"image":"https://tvax4.sinaimg.cn/crop.0.0.512.512.180/71c50075ly8fxujicydtnj20e80e8aab.jpg"},"articleBody":"原文：How to use powerful function composition in Javascript\n复合函数（Function composition） 是 JavaScript 编程中在面向对象和函数式编程二者之间相当大的一个差异。\n本文会解释类层级（Class Hierarchy）与复合函数之间的区别，以及在代码中利用复合函数和函数式编程优点的示例。\n\n类层级与「机器狗」在面对对象编程中，定义 Class。\n例如，你定义了父类 Animal 并拥有一个 move 方法，并继续创建 Cat 和 Dog 类从 Animal 继承 move  方法，并添加自己的方法 bark （狗叫）和 meow（猫叫）。\n然后，你又定义了一个 Robot 类拥有方法 chargeBattery。\n\n现在，如果你想创建一个需要 move 和 chargeBattery 方法的 RoboDog 类，以及一个为 Dog  增强 bark 的 roboBark，那么要怎么办呢？ 这个类需要从 Dog 和 Robot 同时继承，但 JavaScript 却不允许这样做。\n\n为了解决这个问题以及其他一些问题，在面向对象编程中不再推荐使用继承。 相反，我们需要为类定义一个接口（当前不存在于 JavaScript 中），并实例化继承的类并将它们用作依赖项。\n此外，依赖项应该通过依赖注入来处理，以提高可测试性和灵活性，详情可参阅： JavaScript Pure Functions for OOP developers。\nRoboDog 类看起来像下面这样：12345678910111213141516171819202122232425import &#123;Animal, Dog&#125; from './animals';import &#123;Robot&#125; from './robots';​class RoboDog &#123;  constructor(animal, dog, robot) &#123;    this.animal = new animal();    this.dog = new dog();    this.robot = new robot();  &#125;  move() &#123;    return this.animal.move();  &#125;  bark() &#123;    return this.dog.bark();  &#125;  chargeBattery() &#123;    return this.robot.chargeBattery();  &#125;  roboBark() &#123;    return 2 * this.dog.bark();  &#125;&#125;​const roboDog = new RoboDog(Animal, Dog, Robot);roboDog.roboBark();\n\n复合函数复合函数基于一元柯西化（Monadic Curried）的使用和优选纯函数（Pure Function）。\n12345678// 一元函数只接受一个参数const monadic = one =&gt; one + 1;​// 这不是一元函数const notMonadic = (one, two) =&gt; one + two;​// 这是柯西、一元、高阶函数const curry = one =&gt; two =&gt; one + two;\n复合函数非常简单，它使用多个函数，并且每个函数接收输入，并将其输出移交给下一个函数：123456const plusOne = a =&gt; a + 1;const plusTwo = a =&gt; a + 2;​const composedPlusThree = a =&gt; plusTwo(plusOne(a));​composedPlusThree(3); // 6\n在函数式编程中，你定义的是表达式而不是语句，函数也只是一个表达式。因此，JavaScript 支持将函数作为参数，或把返回的函数作为其输出的高阶函数。\n为了让其变得容易，你可以定义高阶函数 compose 和 composePipe：12const compose = (...fns) =&gt; x =&gt; fns.reduceRight((v, f) =&gt; f(v), x);const composePipe = (...fns) =&gt; x =&gt; fns.reduce((v, f) =&gt; f(v), x);\ncompose 和 composePipe 在组合函数的顺序上有所不同：12345678const plusA = s =&gt; s + 'A';const plusB = s =&gt; s + 'B';​const composed1 = s =&gt; compose(plusA, plusB)(s);const composed2 = s =&gt; composePipe(plusA, plusB)(s);​composed1(''); // BAcomposed2(''); // AB\n请注意，在这里可以使用无参数风格代码（tacit programming 隐式编程 ）：123const composedPointFree = compose(plusA, plusB);​console.log(composedPointFree('') === composed1('')); // true\n显然，这是可以的。因为 compose(plusA，plusB) 是一个高阶函数，而 compose 返回一个用于定义新表达式的函数。\n如果你使用过Unix，你还可以将函数组合与 Unix 管道相关联，该管道的工作原理相同：$ ls -l | grep key | less。\n一点点数学\n查看上图，你可以看到三个不同颜色的编号组，它们通过函数 g 和 f 连接。 函数 g 接受参数 Horse 并返回 Horn 。 然后函数 f 接受参数 Horn 并返回 Unicorn。这两个函数的组成是一个函数，而这个函数需要一个 Horse 作为参数，并直接返回一个 Unicorn 作为输出。\n因为我们使用的是纯函数，并且其始终为相同输入返回相同值，所以我们可以通过一个简单的函数替换组合函数，该函数只需要 Horse 并返回 Unicorn。 这是 Memoization（记忆化） 中使用的原则。\n函数式编程并不能很好地优化并行处理。正如你所看到的那样，它还拥有允许我们完全跳过处理的魔力，并通过跳过它们之间的所有内容来返回问题的答案。\n复合函数与「机器狗」复合函数的使用，实际上与前文中的 RoboDog 面向对象编程实例中所做的，看起来相似。但是，使用复合函数，其函数的构成要优雅得多。\n你没有使用类来模拟整个逻辑，而只是定义了代表所需功能的方法。 最终JavaScript 模块的表达如下：123456import &#123;bark&#125; from './dog';import &#123;compose&#125; from './functional';​const doubleIt = a =&gt; 2 * a;​export const roboBark = composePipe(bark, doubleIt);\n请注意，上面的代码没有引用它不需要的任何内容，这意味着没有提到 Animal 或 Robot 的功能。 这些并不是 RoboDog 独有的，而我们只想关注一个全新的独特代码。\n要使用代码中的所有功能， 你可以自由使用 Animal、Dog、Cat、Robot 和 RoboDog 中的功能。\n\n复合函数和对象之间还有另一个显着差异。 对象保存内部数据和状态，它们是有状态的。 然而，函数式编程中的函数应该是纯粹的和无状态的。\n纯函数仅由其输入驱动以提供其输出，它不会改变（变异）任何其他数据，也不会触发任何副作用。 这使得它非常简单、可预测、易于测试，并且易于遵循通用编程的最佳实践。这些都是优秀的程序员应该关心的事情。\n在函数式编程中，你应该遵循关注点分离，通过使用控制反转（IOC）的原理和函数式单子（Monads）的方式将任务的执行与其实现分离（IOC 是 AOP 中常用概念，Monads 是函数式编程中的概念）。\n甚至，如果不使用单子（因为它们的定义会吓到你：A monad is just a monoid in the category ofendofunctors，自函子范畴上的幺半群），你仍然可以解耦代码。只需将功能的定义移动到一个可以集成和提供数据的位置并执行，然后移动到另一个位置。理想情况下，可以在完全不同的模块级别上执行此操作。\n做完这些工作，你可以通过单元测试和集成测试来覆盖代码功能。自此，你就可以过上快乐的程序员生活。\n\n拆分你的函数并使用复合函数你有可能正在使用函数作为可重复的语句序列的盒子，如下所示：1234567function simonSays(arg) &#123;  let result = arg.trim();  result = `Simon Says: $&#123;result&#125;`;  return result;&#125;​simonSays(' Jump! '); // Simon Says: Jump!\n上面的函数修剪（trim）字符串参数，修饰它然后返回。 示例上的函数虽然只有五行，但实际上，我们经常看到由几十行代码表示的函数。\n单一职责原则（Single Responsibility Principle）规定：每个函数都应对功能的一部分负责。 这是开放的解释，但我们可以很容易地发现，上述功能中「修剪」和「装饰」做的是两件事而不是一件事。\n让我们尝试使用 JavaScript 中的复合函数：123456const trim = a =&gt; a.trim();const add = a =&gt; b =&gt; a + b;​const simonSays = composePipe(trim, add('Simon Says: '));​simonSays(' Jump! '); // Simon Says: Jump!\n使用复合函数，意味着对于程序逻辑的每一步都会有一个可测试且可重用的函数。\n测试驱动开发（TDD）要求你，首先为要实现功能的任何部分编写测试用例，然后实现逻辑，并全部通过测试用例的测试。这部分是为了确保程序不会有任何隐藏的、未经测试的逻辑。\n通过使用复合函数，你总是可以用一种暴露逻辑并允许轻松测试的方式去编写代码。 更多内容可以查看：Making testable JavaScript code。\n使用局部应用（Partial Application）创建可重用代码通过局部应用的柯西化函数来完善上述的 simonSays 函数。局部应用程序意味着你将提供暴露高阶函数中作为基础函数的参数：123456const add = a =&gt; b =&gt; a + b;const partialSimonSays = add('Simon Says:'); // partial applicationconst simonSays = composePipe(trim, partialSimonSays);​partialSimonSays('Jump!'); // Simon Says: Jump!simonSays(' Jump! '); // Simon Says: Jump!\n这允许你创建更多可重用的代码。更多内容可以查看：JavaScript ES6 curry functions with practical examples。\n探讨你的代码因为我们一直在使用纯函数，所以在组合中插入其他函数会非常容易。请参阅下面的示例：12345678910111213141516// console.log is impure and does not provide any return value// so we have to improve itconst investigate = a =&gt; console.log(a) || a;​const simonSays = composePipe(  investigate,  trim,  investigate,  partialSimonSays,  investigate);​simonSays(' Jump! ');//  Jump! // Jump!// Simon Says: Jump!\n如果你正在创建纯函数，你将始终能够非常轻松地编写代码，而无需重构以前的代码来支持新的用例。\n结论复合函数要求你对编写代码的方式进行不同层次的思考，这样将会为你带来很多好处。\n由复合函数替换类层级允许你专注于，基于功能的思考去开发唯一代码，而不是基于类的思考。\n隐式编程允许你通过利用柯西化和高阶函数来简化代码。\n你需要构建分解后的原子函数，以便为单一责任原则和测试驱动开发创建更多可重用、可组合的代码。\n纯函数和局部应用函数允许通过创建功能强大、简单、可预测、可轻松测试的代码，来提升你的架构，并轻松应用到编程的最佳实践中。\n","dateCreated":"2019-08-26T18:00:00+08:00","dateModified":"2019-09-04T21:40:40+08:00","datePublished":"2019-08-26T18:00:00+08:00","description":"原文：How to use powerful function composition in Javascript\n复合函数（Function composition） 是 JavaScript 编程中在面向对象和函数式编程二者之间相当大的一个差异。\n本文会解释类层级（Class Hierarchy）与复合函数之间的区别，以及在代码中利用复合函数和函数式编程优点的示例。","headline":"【译】如何在 JavaScript 中使用强大的复合函数","image":["https://tva1.sinaimg.cn/large/006y8mN6ly1g6ntb8sbmaj308c0anq3f.jpg"],"mainEntityOfPage":{"@type":"WebPage","@id":"https://e-lim.cn/20190826/"},"publisher":{"@type":"Organization","name":"Edwon Lim","sameAs":["https://ws3.sinaimg.cn/large/006tKfTcly1frsdntpo4aj30jb0ich0m.jpg","https://weibo.com/edwonlim","https://github.com/EdwonLim","mailto:edwon.lim@gmail.com","/books"],"image":"https://tvax4.sinaimg.cn/crop.0.0.512.512.180/71c50075ly8fxujicydtnj20e80e8aab.jpg","logo":{"@type":"ImageObject","url":"https://tvax4.sinaimg.cn/crop.0.0.512.512.180/71c50075ly8fxujicydtnj20e80e8aab.jpg"}},"url":"https://e-lim.cn/20190826/","keywords":"函数式编程","thumbnailUrl":"https://tva1.sinaimg.cn/large/006y8mN6ly1g6ntb8sbmaj308c0anq3f.jpg"}</script>
+    <meta name="description" content="原文：How to use powerful function composition in Javascript 复合函数（Function composition） 是 JavaScript 编程中在面向对象和函数式编程二者之间相当大的一个差异。 本文会解释类层级（Class Hierarchy）与复合函数之间的区别，以及在代码中利用复合函数和函数式编程优点的示例。">
+<meta name="keywords" content="函数式编程">
+<meta property="og:type" content="blog">
+<meta property="og:title" content="【译】如何在 JavaScript 中使用强大的复合函数">
+<meta property="og:url" content="https://e-lim.cn/20190826/index.html">
+<meta property="og:site_name" content="E-Lim 的博客">
+<meta property="og:description" content="原文：How to use powerful function composition in Javascript 复合函数（Function composition） 是 JavaScript 编程中在面向对象和函数式编程二者之间相当大的一个差异。 本文会解释类层级（Class Hierarchy）与复合函数之间的区别，以及在代码中利用复合函数和函数式编程优点的示例。">
+<meta property="og:locale" content="zh-cn">
+<meta property="og:image" content="https://tva1.sinaimg.cn/large/006y8mN6ly1g6nt8k8x3tj30fl042dg0.jpg">
+<meta property="og:image" content="https://tva1.sinaimg.cn/large/006y8mN6ly1g6nt8zm7e8j30fl06kjrp.jpg">
+<meta property="og:image" content="https://tva1.sinaimg.cn/large/006y8mN6ly1g6nt9osvxkj308c08qaae.jpg">
+<meta property="og:image" content="https://tva1.sinaimg.cn/large/006y8mN6ly1g6nt9zt2frj31910o8jua.jpg">
+<meta property="og:image" content="https://tva1.sinaimg.cn/large/006y8mN6ly1g6ntajp721j308c07kt8z.jpg">
+<meta property="og:image" content="https://tva1.sinaimg.cn/large/006y8mN6ly1g6ntb8sbmaj308c0anq3f.jpg">
+<meta property="og:updated_time" content="2019-09-04T13:40:40.095Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="【译】如何在 JavaScript 中使用强大的复合函数">
+<meta name="twitter:description" content="原文：How to use powerful function composition in Javascript 复合函数（Function composition） 是 JavaScript 编程中在面向对象和函数式编程二者之间相当大的一个差异。 本文会解释类层级（Class Hierarchy）与复合函数之间的区别，以及在代码中利用复合函数和函数式编程优点的示例。">
+<meta name="twitter:image" content="https://tva1.sinaimg.cn/large/006y8mN6ly1g6nt8k8x3tj30fl042dg0.jpg">
+    
+    
+        
+    
+    
+        <meta property="og:image" content="https://tvax4.sinaimg.cn/crop.0.0.512.512.180/71c50075ly8fxujicydtnj20e80e8aab.jpg"/>
+    
+    
+        <meta property="og:image" content="https://tva1.sinaimg.cn/large/006y8mN6ly1g6ntb8sbmaj308c0anq3f.jpg"/>
+        <meta class="swiftype" name="image" data-type="enum" content="https://tva1.sinaimg.cn/large/006y8mN6ly1g6ntb8sbmaj308c0anq3f.jpg" />
+    
+    
+    
+    <!--STYLES-->
+    <link rel="stylesheet" href="/assets/css/style-1udptkpril81ozu8ifd8zpujn7ipu7lefxsiu5gxx0dpnzntdx6dusvki3ao.min.css">
+    <!--STYLES END-->
+    
+
+    
+</head>
+
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
+
+
+    
+        
+            
+        
+    
+
+<header id="header" data-behavior="4">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <div class="header-title">
+        <a class="header-title-link" href="/ ">E-Lim 的博客</a>
+    </div>
+    
+        
+            <a class="header-right-picture " href="#about">
+        
+        
+            <img class="header-picture" src="https://tvax4.sinaimg.cn/crop.0.0.512.512.180/71c50075ly8fxujicydtnj20e80e8aab.jpg" alt="作者的图片">
+        
+        </a>
+    
+</header>
+
+            <style type="text/css">
+    #sidebar .sidebar-button-link:focus {
+        outline: none;
+    }
+</style>
+<!-- Define author's picture -->
+
+
+
+        
+    
+
+<nav id="sidebar" data-behavior="4">
+    <div class="sidebar-container">
+        
+            <div class="sidebar-profile">
+                <a href="/#about">
+                    <img class="sidebar-profile-picture" src="https://tvax4.sinaimg.cn/crop.0.0.512.512.180/71c50075ly8fxujicydtnj20e80e8aab.jpg" alt="作者的图片">
+                </a>
+                <h4 class="sidebar-profile-name">Edwon Lim</h4>
+                
+                    <h5 class="sidebar-profile-bio"><p>性格决定命运，细节决定成败</p>
+</h5>
+                
+            </div>
+        
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a class="sidebar-button-link " href="/ " title="首页">
+                    
+                        <i class="sidebar-button-icon fa fa-lg fa-home" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">首页</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a class="sidebar-button-link " href="/all-categories" title="分类">
+                    
+                        <i class="sidebar-button-icon fa fa-lg fa-bookmark" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">分类</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a class="sidebar-button-link " href="/all-tags" title="标签">
+                    
+                        <i class="sidebar-button-icon fa fa-lg fa-tags" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">标签</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a class="sidebar-button-link " href="/all-archives" title="归档">
+                    
+                        <i class="sidebar-button-icon fa fa-lg fa-archive" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">归档</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a class="sidebar-button-link " href="#about" title="关于">
+                    
+                        <i class="sidebar-button-icon fa fa-lg fa-question" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">关于</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a class="sidebar-button-link " href="https://ws3.sinaimg.cn/large/006tKfTcly1frsdntpo4aj30jb0ich0m.jpg" target="_blank" rel="noopener" title="WeChat">
+                    
+                        <i class="sidebar-button-icon fa fa-lg fa-wechat" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">WeChat</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a class="sidebar-button-link " href="https://weibo.com/edwonlim" target="_blank" rel="noopener" title="Weibo">
+                    
+                        <i class="sidebar-button-icon fa fa-lg fa-weibo" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">Weibo</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a class="sidebar-button-link " href="https://github.com/EdwonLim" target="_blank" rel="noopener" title="GitHub">
+                    
+                        <i class="sidebar-button-icon fa fa-lg fa-github" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">GitHub</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a class="sidebar-button-link " href="mailto:edwon.lim@gmail.com" target="_blank" rel="noopener" title="E-mail">
+                    
+                        <i class="sidebar-button-icon fa fa-lg fa-envelope-o" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">E-mail</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a class="sidebar-button-link " href="/books" title="Books">
+                    
+                        <i class="sidebar-button-icon fa fa-lg fa-book" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">Books</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+    </div>
+</nav>
+
+            
+            <div id="main" data-behavior="4"
+                 class="
+                        hasCoverMetaIn
+                        ">
+                <style type="text/css">
+    .post-action-btn:focus {
+        outline: none;
+    }
+</style>
+
+<article class="post">
+    
+    
+        <div class="post-header main-content-wrap text-left">
+    
+        <h1 class="post-title">
+            【译】如何在 JavaScript 中使用强大的复合函数
+        </h1>
+    
+    
+        <div class="post-meta">
+    
+    <time datetime="2019-08-26T18:00:00+08:00">
+	
+		    2019 年 08 月 26 日
+    	
+    </time>
+    
+        <span>发布在 </span>
+        《
+    <a class="category-link" href="/categories/潮流技术/">潮流技术</a>
+
+》
+    
+    
+    。
+    <span>文章共 2,497 字，大约需要阅读 10 分钟。</span>
+    
+    
+</div>
+
+    
+</div>
+
+    
+    <style type="text/css">
+        .post .post-content img {
+            margin: 0 auto;
+        }
+    </style>
+    <div class="post-content markdown">
+        <div class="main-content-wrap">
+            <p>原文：<a href="https://medium.com/front-end-weekly/how-to-use-powerful-function-composition-in-javascript-3c0447642044" target="_blank" rel="noopener">How to use powerful function composition in Javascript</a></p>
+<p><strong>复合函数（Function composition）</strong> 是 JavaScript 编程中在面向对象和函数式编程二者之间相当大的一个差异。</p>
+<p>本文会解释类层级（Class Hierarchy）与复合函数之间的区别，以及在代码中利用复合函数和函数式编程优点的示例。</p>
+<a id="more"></a>
+<h3 id="类层级与「机器狗」"><a href="#类层级与「机器狗」" class="headerlink" title="类层级与「机器狗」"></a>类层级与「机器狗」</h3><p>在面对对象编程中，定义 Class。</p>
+<p>例如，你定义了父类 <code>Animal</code> 并拥有一个 <code>move</code> 方法，并继续创建 <code>Cat</code> 和 <code>Dog</code> 类从 <code>Animal</code> 继承 <code>move</code>  方法，并添加自己的方法 <code>bark</code> （狗叫）和 <code>meow</code>（猫叫）。</p>
+<p>然后，你又定义了一个 <code>Robot</code> 类拥有方法 <code>chargeBattery</code>。</p>
+<p><img src="https://tva1.sinaimg.cn/large/006y8mN6ly1g6nt8k8x3tj30fl042dg0.jpg" alt=""></p>
+<p>现在，如果你想创建一个需要 <code>move</code> 和 <code>chargeBattery</code> 方法的 <code>RoboDog</code> 类，以及一个为 <code>Dog</code>  增强 <code>bark</code> 的 <code>roboBark</code>，那么要怎么办呢？ 这个类需要从 <code>Dog</code> 和 <code>Robot</code> 同时继承，但 JavaScript 却不允许这样做。</p>
+<p><img src="https://tva1.sinaimg.cn/large/006y8mN6ly1g6nt8zm7e8j30fl06kjrp.jpg" alt=""></p>
+<p>为了解决这个问题以及其他一些问题，在面向对象编程中不再推荐使用继承。 相反，我们需要为类定义一个接口（<em>当前不存在于 JavaScript 中</em>），并实例化继承的类并将它们用作依赖项。</p>
+<p>此外，依赖项应该通过依赖注入来处理，以提高可测试性和灵活性，详情可参阅： <a href="https://medium.com/front-end-weekly/javascript-pure-functions-for-oop-developers-5fc9020541a8" target="_blank" rel="noopener">JavaScript Pure Functions for OOP developers</a>。</p>
+<p><code>RoboDog</code> 类看起来像下面这样：<br><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> &#123;Animal, Dog&#125; <span class="keyword">from</span> <span class="string">'./animals'</span>;</span><br><span class="line"><span class="keyword">import</span> &#123;Robot&#125; <span class="keyword">from</span> <span class="string">'./robots'</span>;</span><br><span class="line">​</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">RoboDog</span> </span>&#123;</span><br><span class="line">  <span class="keyword">constructor</span>(animal, dog, robot) &#123;</span><br><span class="line">    <span class="keyword">this</span>.animal = <span class="keyword">new</span> animal();</span><br><span class="line">    <span class="keyword">this</span>.dog = <span class="keyword">new</span> dog();</span><br><span class="line">    <span class="keyword">this</span>.robot = <span class="keyword">new</span> robot();</span><br><span class="line">  &#125;</span><br><span class="line">  move() &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">this</span>.animal.move();</span><br><span class="line">  &#125;</span><br><span class="line">  bark() &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">this</span>.dog.bark();</span><br><span class="line">  &#125;</span><br><span class="line">  chargeBattery() &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">this</span>.robot.chargeBattery();</span><br><span class="line">  &#125;</span><br><span class="line">  roboBark() &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">2</span> * <span class="keyword">this</span>.dog.bark();</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line">​</span><br><span class="line"><span class="keyword">const</span> roboDog = <span class="keyword">new</span> RoboDog(Animal, Dog, Robot);</span><br><span class="line">roboDog.roboBark();</span><br></pre></td></tr></table></figure></p>
+<p><img src="https://tva1.sinaimg.cn/large/006y8mN6ly1g6nt9osvxkj308c08qaae.jpg" alt=""></p>
+<h3 id="复合函数"><a href="#复合函数" class="headerlink" title="复合函数"></a>复合函数</h3><p><strong>复合函数</strong>基于<strong>一元柯西化</strong>（<em>Monadic Curried</em>）的使用和优选<strong>纯函数</strong>（<em>Pure Function</em>）。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 一元函数只接受一个参数</span></span><br><span class="line"><span class="keyword">const</span> monadic = <span class="function"><span class="params">one</span> =&gt;</span> one + <span class="number">1</span>;</span><br><span class="line">​</span><br><span class="line"><span class="comment">// 这不是一元函数</span></span><br><span class="line"><span class="keyword">const</span> notMonadic = <span class="function">(<span class="params">one, two</span>) =&gt;</span> one + two;</span><br><span class="line">​</span><br><span class="line"><span class="comment">// 这是柯西、一元、高阶函数</span></span><br><span class="line"><span class="keyword">const</span> curry = <span class="function"><span class="params">one</span> =&gt;</span> two =&gt; one + two;</span><br></pre></td></tr></table></figure>
+<p>复合函数非常简单，它使用多个函数，并且每个函数接收输入，并将其输出移交给下一个函数：<br><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> plusOne = <span class="function"><span class="params">a</span> =&gt;</span> a + <span class="number">1</span>;</span><br><span class="line"><span class="keyword">const</span> plusTwo = <span class="function"><span class="params">a</span> =&gt;</span> a + <span class="number">2</span>;</span><br><span class="line">​</span><br><span class="line"><span class="keyword">const</span> composedPlusThree = <span class="function"><span class="params">a</span> =&gt;</span> plusTwo(plusOne(a));</span><br><span class="line">​</span><br><span class="line">composedPlusThree(<span class="number">3</span>); <span class="comment">// 6</span></span><br></pre></td></tr></table></figure></p>
+<p>在函数式编程中，你定义的是表达式而不是语句，函数也只是一个表达式。因此，JavaScript 支持将函数作为参数，或把返回的函数作为其输出的高阶函数。</p>
+<p>为了让其变得容易，你可以定义<strong>高阶函数</strong> <code>compose</code> 和 <code>composePipe</code>：<br><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> compose = <span class="function">(<span class="params">...fns</span>) =&gt;</span> x =&gt; fns.reduceRight(<span class="function">(<span class="params">v, f</span>) =&gt;</span> f(v), x);</span><br><span class="line"><span class="keyword">const</span> composePipe = <span class="function">(<span class="params">...fns</span>) =&gt;</span> x =&gt; fns.reduce(<span class="function">(<span class="params">v, f</span>) =&gt;</span> f(v), x);</span><br></pre></td></tr></table></figure></p>
+<p>compose 和 composePipe 在组合函数的顺序上有所不同：<br><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> plusA = <span class="function"><span class="params">s</span> =&gt;</span> s + <span class="string">'A'</span>;</span><br><span class="line"><span class="keyword">const</span> plusB = <span class="function"><span class="params">s</span> =&gt;</span> s + <span class="string">'B'</span>;</span><br><span class="line">​</span><br><span class="line"><span class="keyword">const</span> composed1 = <span class="function"><span class="params">s</span> =&gt;</span> compose(plusA, plusB)(s);</span><br><span class="line"><span class="keyword">const</span> composed2 = <span class="function"><span class="params">s</span> =&gt;</span> composePipe(plusA, plusB)(s);</span><br><span class="line">​</span><br><span class="line">composed1(<span class="string">''</span>); <span class="comment">// BA</span></span><br><span class="line">composed2(<span class="string">''</span>); <span class="comment">// AB</span></span><br></pre></td></tr></table></figure></p>
+<p>请注意，在这里可以使用无参数风格代码（<em>tacit programming 隐式编程</em> ）：<br><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> composedPointFree = compose(plusA, plusB);</span><br><span class="line">​</span><br><span class="line"><span class="built_in">console</span>.log(composedPointFree(<span class="string">''</span>) === composed1(<span class="string">''</span>)); <span class="comment">// true</span></span><br></pre></td></tr></table></figure></p>
+<p>显然，这是可以的。因为 <code>compose(plusA，plusB)</code> 是一个高阶函数，而 <code>compose</code> 返回一个用于定义新表达式的函数。</p>
+<p>如果你使用过Unix，你还可以将函数组合与 Unix 管道相关联，该管道的工作原理相同：<code>$ ls -l | grep key | less</code>。</p>
+<h3 id="一点点数学"><a href="#一点点数学" class="headerlink" title="一点点数学"></a>一点点数学</h3><p><img src="https://tva1.sinaimg.cn/large/006y8mN6ly1g6nt9zt2frj31910o8jua.jpg" alt=""></p>
+<p>查看上图，你可以看到三个不同颜色的编号组，它们通过函数 <code>g</code> 和 <code>f</code> 连接。 函数 <code>g</code> 接受参数 <code>Horse</code> 并返回 <code>Horn</code> 。 然后函数 <code>f</code> 接受参数 <code>Horn</code> 并返回 <code>Unicorn</code>。这两个函数的组成是一个函数，而这个函数需要一个 <code>Horse</code> 作为参数，并直接返回一个 <code>Unicorn</code> 作为输出。</p>
+<p>因为我们使用的是纯函数，并且其始终为相同输入返回相同值，所以我们可以通过一个简单的函数替换组合函数，该函数只需要 <code>Horse</code> 并返回 <code>Unicorn</code>。 这是 <strong>Memoization</strong>（<em>记忆化</em>） 中使用的原则。</p>
+<p>函数式编程并不能很好地优化并行处理。正如你所看到的那样，它还拥有允许我们完全跳过处理的魔力，并通过跳过它们之间的所有内容来返回问题的答案。</p>
+<h3 id="复合函数与「机器狗」"><a href="#复合函数与「机器狗」" class="headerlink" title="复合函数与「机器狗」"></a>复合函数与「机器狗」</h3><p>复合函数的使用，实际上与前文中的 <code>RoboDog</code> 面向对象编程实例中所做的，看起来相似。但是，使用复合函数，其函数的构成要优雅得多。</p>
+<p>你没有使用类来模拟整个逻辑，而只是定义了代表所需功能的方法。 最终JavaScript 模块的表达如下：<br><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> &#123;bark&#125; <span class="keyword">from</span> <span class="string">'./dog'</span>;</span><br><span class="line"><span class="keyword">import</span> &#123;compose&#125; <span class="keyword">from</span> <span class="string">'./functional'</span>;</span><br><span class="line">​</span><br><span class="line"><span class="keyword">const</span> doubleIt = <span class="function"><span class="params">a</span> =&gt;</span> <span class="number">2</span> * a;</span><br><span class="line">​</span><br><span class="line"><span class="keyword">export</span> <span class="keyword">const</span> roboBark = composePipe(bark, doubleIt);</span><br></pre></td></tr></table></figure></p>
+<p>请注意，上面的代码没有引用它不需要的任何内容，这意味着没有提到 <code>Animal</code> 或 <code>Robot</code> 的功能。 这些并不是 <code>RoboDog</code> 独有的，而我们只想关注一个全新的独特代码。</p>
+<p>要使用代码中的所有功能， 你可以自由使用 <code>Animal</code>、<code>Dog</code>、<code>Cat</code>、<code>Robot</code> 和 <code>RoboDog</code> 中的功能。</p>
+<p><img src="https://tva1.sinaimg.cn/large/006y8mN6ly1g6ntajp721j308c07kt8z.jpg" alt=""></p>
+<p>复合函数和对象之间还有另一个显着差异。 对象保存内部数据和状态，它们是有状态的。 然而，函数式编程中的函数应该是纯粹的和无状态的。</p>
+<p>纯函数仅由其输入驱动以提供其输出，它不会改变（<em>变异</em>）任何其他数据，也不会触发任何副作用。 这使得它非常简单、可预测、易于测试，并且易于遵循通用编程的最佳实践。这些都是优秀的程序员应该关心的事情。</p>
+<p>在函数式编程中，你应该遵循关注点分离，通过使用控制反转（<em>IOC</em>）的原理和函数式单子（<em>Monads</em>）的方式将任务的执行与其实现分离（<em>IOC 是 AOP 中常用概念，Monads 是函数式编程中的概念</em>）。</p>
+<p>甚至，如果不使用单子（因为它们的定义会吓到你：<code>A monad is just a monoid in the category ofendofunctors，自函子范畴上的幺半群</code>），你仍然可以解耦代码。只需将功能的定义移动到一个可以集成和提供数据的位置并执行，然后移动到另一个位置。理想情况下，可以在完全不同的模块级别上执行此操作。</p>
+<p>做完这些工作，你可以通过单元测试和集成测试来覆盖代码功能。自此，你就可以过上快乐的程序员生活。</p>
+<p><img src="https://tva1.sinaimg.cn/large/006y8mN6ly1g6ntb8sbmaj308c0anq3f.jpg" alt=""></p>
+<h3 id="拆分你的函数并使用复合函数"><a href="#拆分你的函数并使用复合函数" class="headerlink" title="拆分你的函数并使用复合函数"></a>拆分你的函数并使用复合函数</h3><p>你有可能正在使用函数作为可重复的语句序列的盒子，如下所示：<br><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">simonSays</span>(<span class="params">arg</span>) </span>&#123;</span><br><span class="line">  <span class="keyword">let</span> result = arg.trim();</span><br><span class="line">  result = <span class="string">`Simon Says: <span class="subst">$&#123;result&#125;</span>`</span>;</span><br><span class="line">  <span class="keyword">return</span> result;</span><br><span class="line">&#125;</span><br><span class="line">​</span><br><span class="line">simonSays(<span class="string">' Jump! '</span>); <span class="comment">// Simon Says: Jump!</span></span><br></pre></td></tr></table></figure></p>
+<p>上面的函数修剪（<em>trim</em>）字符串参数，修饰它然后返回。 示例上的函数虽然只有五行，但实际上，我们经常看到由几十行代码表示的函数。</p>
+<p><strong>单一职责原则</strong>（<em>Single Responsibility Principle</em>）规定：每个函数都应对功能的一部分负责。 这是开放的解释，但我们可以很容易地发现，上述功能中「修剪」和「装饰」做的是两件事而不是一件事。</p>
+<p>让我们尝试使用 JavaScript 中的<strong>复合函数</strong>：<br><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> trim = <span class="function"><span class="params">a</span> =&gt;</span> a.trim();</span><br><span class="line"><span class="keyword">const</span> add = <span class="function"><span class="params">a</span> =&gt;</span> b =&gt; a + b;</span><br><span class="line">​</span><br><span class="line"><span class="keyword">const</span> simonSays = composePipe(trim, add(<span class="string">'Simon Says: '</span>));</span><br><span class="line">​</span><br><span class="line">simonSays(<span class="string">' Jump! '</span>); <span class="comment">// Simon Says: Jump!</span></span><br></pre></td></tr></table></figure></p>
+<p>使用复合函数，意味着对于程序逻辑的每一步都会有一个可测试且可重用的函数。</p>
+<p>测试驱动开发（<em>TDD</em>）要求你，首先为要实现功能的任何部分编写测试用例，然后实现逻辑，并全部通过测试用例的测试。这部分是为了确保程序不会有任何隐藏的、未经测试的逻辑。</p>
+<p>通过使用复合函数，你总是可以用一种暴露逻辑并允许轻松测试的方式去编写代码。 更多内容可以查看：<a href="https://medium.com/front-end-weekly/making-testable-javascript-code-2a71afba5120" target="_blank" rel="noopener">Making testable JavaScript code</a>。</p>
+<h3 id="使用局部应用（Partial-Application）创建可重用代码"><a href="#使用局部应用（Partial-Application）创建可重用代码" class="headerlink" title="使用局部应用（Partial Application）创建可重用代码"></a>使用局部应用（Partial Application）创建可重用代码</h3><p>通过局部应用的柯西化函数来完善上述的 <code>simonSays</code> 函数。局部应用程序意味着你将提供暴露高阶函数中作为基础函数的参数：<br><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> add = <span class="function"><span class="params">a</span> =&gt;</span> b =&gt; a + b;</span><br><span class="line"><span class="keyword">const</span> partialSimonSays = add(<span class="string">'Simon Says:'</span>); <span class="comment">// partial application</span></span><br><span class="line"><span class="keyword">const</span> simonSays = composePipe(trim, partialSimonSays);</span><br><span class="line">​</span><br><span class="line">partialSimonSays(<span class="string">'Jump!'</span>); <span class="comment">// Simon Says: Jump!</span></span><br><span class="line">simonSays(<span class="string">' Jump! '</span>); <span class="comment">// Simon Says: Jump!</span></span><br></pre></td></tr></table></figure></p>
+<p>这允许你创建更多可重用的代码。更多内容可以查看：<a href="https://medium.com/front-end-weekly/javascript-es6-curry-functions-with-practical-examples-6ba2ced003b1" target="_blank" rel="noopener">JavaScript ES6 curry functions with practical examples</a>。</p>
+<h3 id="探讨你的代码"><a href="#探讨你的代码" class="headerlink" title="探讨你的代码"></a>探讨你的代码</h3><p>因为我们一直在使用纯函数，所以在组合中插入其他函数会非常容易。请参阅下面的示例：<br><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// console.log is impure and does not provide any return value</span></span><br><span class="line"><span class="comment">// so we have to improve it</span></span><br><span class="line"><span class="keyword">const</span> investigate = <span class="function"><span class="params">a</span> =&gt;</span> <span class="built_in">console</span>.log(a) || a;</span><br><span class="line">​</span><br><span class="line"><span class="keyword">const</span> simonSays = composePipe(</span><br><span class="line">  investigate,</span><br><span class="line">  trim,</span><br><span class="line">  investigate,</span><br><span class="line">  partialSimonSays,</span><br><span class="line">  investigate</span><br><span class="line">);</span><br><span class="line">​</span><br><span class="line">simonSays(<span class="string">' Jump! '</span>);</span><br><span class="line"><span class="comment">//  Jump! </span></span><br><span class="line"><span class="comment">// Jump!</span></span><br><span class="line"><span class="comment">// Simon Says: Jump!</span></span><br></pre></td></tr></table></figure></p>
+<p>如果你正在创建纯函数，你将始终能够非常轻松地编写代码，而无需重构以前的代码来支持新的用例。</p>
+<h3 id="结论"><a href="#结论" class="headerlink" title="结论"></a>结论</h3><p><strong>复合函数</strong>要求你对编写代码的方式进行不同层次的思考，这样将会为你带来很多好处。</p>
+<p><strong>由复合函数替换类层级</strong>允许你专注于，基于功能的思考去开发唯一代码，而不是基于类的思考。</p>
+<p><strong>隐式编程</strong>允许你通过利用柯西化和高阶函数来简化代码。</p>
+<p>你需要构建分解后的原子函数，以便为单一责任原则和测试驱动开发创建更多<strong>可重用、可组合的代码</strong>。</p>
+<p><strong>纯函数和局部应用函数</strong>允许通过创建功能强大、简单、可预测、可轻松测试的代码，来提升你的架构，并轻松应用到编程的最佳实践中。</p>
+
+            
+
+        </div>
+    </div>
+    <div id="post-footer" class="post-footer main-content-wrap">
+        
+            <div class="post-footer-tags">
+                <span class="text-color-light text-small">标签</span><br>
+                
+    <a class="tag tag--primary tag--small t-link" href="/tags/函数式编程/">函数式编程</a>
+
+            </div>
+        
+        
+            <div class="post-actions-wrap">
+    <nav>
+        
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--disabled">
+                
+                    <i class="fa fa-angle-left" aria-hidden="true"></i>
+                    <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/20190726/" data-tooltip="【译】函数式 JavaScript：大家所关心的高阶函数" aria-label="下一篇: 【译】函数式 JavaScript：大家所关心的高阶函数">
+                
+                    <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                    <i class="fa fa-angle-right" aria-hidden="true"></i>
+                </a>
+            </li>
+        </ul>
+        
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a class="post-action-btn btn btn--default btn-open-shareoptions" href="#btn-open-shareoptions" aria-label="Diesen Beitrag teilen">
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a class="post-action-btn btn btn--default" target="new" href="https://connect.qq.com/widget/shareqq/index.html?url=https://e-lim.cn/20190826/&amp;title=【译】如何在 JavaScript 中使用强大的复合函数" title="分享到 QQ">
+                    <i class="fa fa-qq" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a class="post-action-btn btn btn--default" target="new" href="https://service.weibo.com/share/share.php?&amp;title=https://e-lim.cn/20190826/" title="分享到 Weibo">
+                    <i class="fa fa-weibo" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a class="post-action-btn btn btn--default" target="new" href="https://cli.im/api/qrcode/code?text=https://e-lim.cn/20190826/" title="分享到 微信">
+                    <i class="fa fa-wechat" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+        
+        
+            
+        
+    </div>
+</article>
+
+
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2019 Edwon Lim. All Rights Reserved. 京ICP备18032586号-1
+    </span>
+</footer>
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="4">
+                    <div class="post-actions-wrap">
+    <nav>
+        
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--disabled">
+                
+                    <i class="fa fa-angle-left" aria-hidden="true"></i>
+                    <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/20190726/" data-tooltip="【译】函数式 JavaScript：大家所关心的高阶函数" aria-label="下一篇: 【译】函数式 JavaScript：大家所关心的高阶函数">
+                
+                    <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                    <i class="fa fa-angle-right" aria-hidden="true"></i>
+                </a>
+            </li>
+        </ul>
+        
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a class="post-action-btn btn btn--default btn-open-shareoptions" href="#btn-open-shareoptions" aria-label="Diesen Beitrag teilen">
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a class="post-action-btn btn btn--default" target="new" href="https://connect.qq.com/widget/shareqq/index.html?url=https://e-lim.cn/20190826/&amp;title=【译】如何在 JavaScript 中使用强大的复合函数" title="分享到 QQ">
+                    <i class="fa fa-qq" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a class="post-action-btn btn btn--default" target="new" href="https://service.weibo.com/share/share.php?&amp;title=https://e-lim.cn/20190826/" title="分享到 Weibo">
+                    <i class="fa fa-weibo" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a class="post-action-btn btn btn--default" target="new" href="https://cli.im/api/qrcode/code?text=https://e-lim.cn/20190826/" title="分享到 微信">
+                    <i class="fa fa-wechat" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+                </div>
+                <div id="share-options-bar" class="share-options-bar" data-behavior="4">
+    <i id="btn-close-shareoptions" class="fa fa-close"></i>
+    <ul class="share-options">
+        
+            
+            
+            <li class="share-option">
+                <a class="share-option-btn" target="new" href="https://connect.qq.com/widget/shareqq/index.html?url=https://e-lim.cn/20190826/&amp;title=【译】如何在 JavaScript 中使用强大的复合函数">
+                    <i class="fa fa-qq" aria-hidden="true"></i><span>分享到 QQ</span>
+                </a>
+            </li>
+        
+            
+            
+            <li class="share-option">
+                <a class="share-option-btn" target="new" href="https://service.weibo.com/share/share.php?&amp;title=https://e-lim.cn/20190826/">
+                    <i class="fa fa-weibo" aria-hidden="true"></i><span>分享到 Weibo</span>
+                </a>
+            </li>
+        
+            
+            
+            <li class="share-option">
+                <a class="share-option-btn" target="new" href="https://cli.im/api/qrcode/code?text=https://e-lim.cn/20190826/">
+                    <i class="fa fa-wechat" aria-hidden="true"></i><span>分享到 微信</span>
+                </a>
+            </li>
+        
+    </ul>
+</div>
+
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-remove"></i>
+        </div>
+        
+            <img id="about-card-picture" src="https://tvax4.sinaimg.cn/crop.0.0.512.512.180/71c50075ly8fxujicydtnj20e80e8aab.jpg" alt="作者的图片">
+        
+            <h4 id="about-card-name">Edwon Lim</h4>
+        
+            <div id="about-card-bio"><p>性格决定命运，细节决定成败</p>
+</div>
+        
+        
+            <div id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br>
+                <p>大前端 · 架构</p>
+
+            </div>
+        
+        
+            <div id="about-card-location">
+                <i class="fa fa-map-marker"></i>
+                <br>
+                中国 · 北京
+            </div>
+        
+    </div>
+</div>
+
+        
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+        <!--SCRIPTS-->
+<script src="/assets/js/script-yhuo2grt8r7qkqumzgjoglkfbicl1thukjgmla6jopu56zpcowfedi5zjcor.min.js"></script>
+<!--SCRIPTS END-->
+
+    
+
+
+<script>
+    $(function() {
+        $('a[title="WeChat"]').fancybox({});
+    });
+</script>
+
+    </body>
+</html>

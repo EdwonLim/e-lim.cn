@@ -1,0 +1,590 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+    
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="E-Lim 的博客">
+    <title>【译】函数式 JavaScript：大家所关心的高阶函数 - E-Lim 的博客</title>
+    <meta name="author" content="Edwon Lim">
+    <meta name="referrer" content="no-referrer" data-react-helmet="true">
+    
+    
+    
+    <script type="application/ld+json">{"@context":"http://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"Edwon Lim","sameAs":["https://ws3.sinaimg.cn/large/006tKfTcly1frsdntpo4aj30jb0ich0m.jpg","https://weibo.com/edwonlim","https://github.com/EdwonLim","mailto:edwon.lim@gmail.com","/books"],"image":"https://tvax4.sinaimg.cn/crop.0.0.512.512.180/71c50075ly8fxujicydtnj20e80e8aab.jpg"},"articleBody":"原文：FUNCTIONAL JAVASCRIPT: WHAT ARE HIGHER-ORDER FUNCTIONS, AND WHY SHOULD ANYONE CARE?\n译者序：当前，面向对象语言盛行，很多人觉得函数式编程只存在于一些偏门语言中，并在特定的需求下使用。现在很多语言都引入了函数式编程的特性，并吸纳其优点，如我们最熟悉的 JDK，JSDK8 已经引入了函数式编程的一些特性。而对于前端开发者而言，函数式编程看似遥远，其实很近。\nJavaScript 天然支持高阶函数和闭包，其实已经让函数式编程融入到平时的工作中。哪怕没听过函数式编程的人，也都使用过函数式编程的方式。\n\n广义地说，所有 Callback 类的调用，例如 DOM 件的监听、数组方法（forEach、Map）等的使用，都属于函数式编程的范畴。\n这篇文章，立足于 JavaScript 中的函数，为大家剖析函数式编程里最重要的高阶函数，让读者可以对 JavaScript 中的函数式编程有一定的了解。\n正文“高阶函数”是人们抛出的一个概念，但是大家很难解释清楚它意味着什么？也许你已经知道什么是高阶函数，但是你并不清楚如何在现实中使用？什么情况下使用？使用后产生什么效果？甚至说，使用了高阶函数以后，得到了什么好处？是否值得炫耀？反过来，是否会因为烂用它们造成代码复杂度上升？\n我个人恰好认为高阶函数是非常有用的，而事实上，我认为它们是 JavaScript 作为一种语言最重要的特性之一，而上面的问题，将在文中一一解答。 \n但在开始之前，让我们先来深入分析一下高阶函数。 为此，文章将从“把函数赋值给变量”开始。\n函数作为“一等公民”在 Javascript 中，我们至少有三种方式编写一个函数。首先，可以编写一个函数声明，示例如下。123456// 拿到一个 Dom 对象，并放在 li 节点里。function itemise(el) &#123;    const li = document.createElement('li');    li.appendChild(el);    return li;&#125;\n这种方式大家应该很熟悉。 当然，也可以将其改写为函数表达式。 结果如下：12345const itemise = function(el) &#123;    const li = document.createElement('li');    li.appendChild(el);    return li;&#125;\n还有另一种方法来编写相同的函数，这种方式被称为箭头函数：12345const itemise = (el) =&gt; &#123;    const li = document.createElement('li');    li.appendChild(el);    return li;&#125;\n就目的而言，上面的三个方式实现的功能基本相同。 但请注意，最后两个示例将函数赋值给变量。看起来并没有什么不同，但是不一定所有编程语言都可以把函数赋值给变量，这是一个伟大的特性。JavaScript 中的函数是“一等公民”。 也就是说，我们可以：\n\n将函数赋值给变量;\n将函数作为参数传递给其他函数; \n从其他函数返回函数。\n\n以上看起来不错，但与高阶函数有什么关系呢？我们先来看上面所列的后两点。先给出“将函数作为参数传递给其他函数”的例子，我们编写一个可以与DOM 元素一起使用的函数。 如果运行 document.querySelectorAll()，我们会得到一个 NodeList 而不是一个数组。NodeList 没有像数组那样的 .map() 方法，所以写一个：1234567891011// 将给定函数应用于 NodeList 中的每个项目并返回一个数组。function elListMap(transform, list) &#123;    // list 可能是 NodeList，它没有 .map()，所以我们转换它变为一个数组。    return [...list].map(transform);&#125;​// 使用 “for-listing” 类抓取页面上的所有 span。const mySpans = document.querySelectorAll('span.for-listing');​// 将每个包裹在 &lt;li&gt; 元素中。这里，我们重新使用了之前的 itemise() 函数。const wrappedList = elListMap(itemise, mySpans);\n在这个例子中，我们将 itemise 函数作为参数传递给 elListMap 函数。 但是可以使用 elListMap 函数来创建列表。 例如，可以使用它将类添加到一组元素中。\n12345678910function addSpinnerClass(el) &#123;    el.classList.add('spinner');    return el;&#125;​// 找到 'loader' 类的所有 button。const loadButtons = document.querySelectorAll('button.loader');​// 将 spinner 类添加到我们找到的所有 button 上。elListMap(addSpinnerClass, loadButtons);\nelLlistMap 函数将一个函数作为参数进行转换。 这意味着可以重用 elListMap 函数来完成一堆不同的任务。\n现在已经看到了将函数作为参数传递的示例。 但是从函数返回函数是怎么样的呢？ 那可能是什么样的？\n从编写常规旧函数开始。 想要列出 &lt;li&gt; 元素并将它们包装在 &lt;ul&gt; 中。 并不是那么困难：1234567function wrapWithUl(children) &#123;    const ul = document.createElement('ul');    return [...children].reduce((listEl, child) =&gt; &#123;        listEl.appendChild(child);        return listEl;    &#125;, ul);&#125;\n但是，如果以后有一堆段落元素要包含在 &lt;div&gt; 中，要怎么办呢？ 没问题。 可以为此编写了一个函数：1234567function wrapWithDiv(children) &#123;    const div = document.createElement('div');    return [...children].reduce((divEl, child) =&gt; &#123;        divEl.appendChild(child);        return divEl;    &#125;, div);&#125;\n这样就可以正常工作了。 但是这两个功能看起来很强大。 两者之间唯一有意义的变化是创建的父元素。\n现在，可以编写一个带有两个参数的函数：父元素的类型和子元素列表。 但是，还有另一种方法可以做到这一点。 可以创建一个返回函数的函数。 它可能看起来像这样：1234567891011function createListWrapperFunction(elementType) &#123;    // 直接返回一个函数。    return function wrap(children) &#123;      // 在 wrap 函数中，可以看到 elementType 参数。      const parent = document.createElement(elementType);      return [...children].reduce((parentEl, child) =&gt; &#123;          parentEl.appendChild(child);          return parentEl;      &#125;, parent);    &#125;&#125;\n这可能看起来有点复杂，所以分解它。 创建了一个除了返回另一个函数之外什么都不做的函数。 但是，返回的函数会记住 elementType 参数。 然后，当调用返回的函数时，它知道要创建什么类型的元素。 所以，可以像这样创建 wrapWithUl 和 wrapWithDiv ：12345const wrapWithUl  = createListWrapperFunction('ul');// wrapWithUl() 函数现在“记住”它创建了一个 ul 元素。​const wrapWithDiv = createListWreapperFunction('div');// wrapWithDiv() 函数现在“记住”它创建了一个 div 元素。\n返回的函数“记住”某些内容具有技术名称的业务，这称之为封闭。 封闭过于方便，但现在不会过多担心它们。\n所以，我们已经看到：\n\n为变量分配函数;\n将函数作为参数传递; \n从另一个函数返回一个函数。\n\n总而言之，拥有这些高级的功能是相当不错的。但这与高阶函数有什么关系呢？ 下面让我们看看高阶函数的定义。\n高阶函数是什么？高阶函数是：\n\nA function that takes a function as an argument, or returns a function as a result（将函数作为参数的函数，或作为结果返回函数的函数）\n\n听起来有点耳熟？ 在 JavaScript 中，函数是一等公民，而“高阶函数”则是利用此功能创造的更复杂的函数。 \n高阶函数的例子一旦你开始寻找，你会看到所有高阶函数中最常见的是接受函数作为参数的函数。因此，先来看看这些常见的，随后再去介绍一些返回函数的函数的实际示例。\n接受函数作为参数的函数通过“回调”功能的任何地方，你都在使用高阶函数。 这些在前端开发中无处不在，其中最常见的是 .addEventListener() 方法。 当想要响应事件而采取行动时，我们会使用此功能。 例如，如果我想开发一个按钮弹出警报：1234567891011function showAlert() &#123;  alert('Fallacies do not cease to be fallacies because they become fashions');&#125;​document.body.innerHTML += `&lt;button type=\"button\" class=\"js-alertbtn\"&gt;  Show alert&lt;/button&gt;`;​const btn = document.querySelector('.js-alertbtn');​btn.addEventListener('click', showAlert);\n在此示例中，我们创建一个显示警报的函数。 然后在页面上添加一个按钮。 最后，将 showAlert() 函数作为参数传递给 btn.addEventListener()。\n当使用数组迭代方法时，也会看到高阶函数。 也就是说，像 .map()，.filter() 和 .reduce() 这样的方法。 这里已经通过 elListMap() 函数看到了这种方式：123function elListMap(transform, list) &#123;    return [...list].map(transform);&#125;\n高阶函数也有助于处理延迟和时序。 setTimeout() 和 setInterval() 函数都可以帮助管理函数执行的时间。 例如，如果想在 30 秒后删除高亮类，可能会这样做：123456function removeHighlights() &#123;    const highlightedElements = document.querySelectorAll('.highlighted');    elListMap(el =&gt; el.classList.remove('highlighted'), highlightedElements);&#125;​setTimeout(removeHighlights, 30000);\n同样，创建一个函数并将其作为参数传递给另一个函数。\n如你所见，在 JavaScript 中经常使用接受函数的函数。 事实上，你可能已经使用过它们了。\n返回函数的函数返回函数的函数不像接受函数的函数那样常见。 但它们仍然有用。 其中一个最有用的例子是 maybe() 函数。 我从 Reginald Braithewaite 的 JavaScript Allongé 改编了这个。 它看起来像这样：123456789function maybe(fn)    return function _maybe(...args) &#123;        // 注意，== 是故意的。        if ((args.length === 0) || args.some(a =&gt; (a == null)) &#123;            return undefined;        &#125;        return fn.apply(this, args);    &#125;&#125;\n现在先看看如何使用它，而不是解释它如何工作。 再次查看函数 elListMap()：12345// 将给定函数应用于 NodeList 中的每个项目并返回一个数组。function elListMap(transform, list) &#123;    // list 可能是 NodeList，它没有 .map()，所以我们转换它变为一个数组。.    return [...list].map(transform);&#125;\n如果将 null 或未定义的值传递给 elListMap() 会发生什么？ 会得到一个 TypeError，无论做什么都会崩溃。 maybe() 函数可以解决这个问题。 这样使用它：123const safeElListMap = maybe(elListMap);safeElListMap(x =&gt; x, null);// ￩ undefined\n该函数返回 undefined，而不是一切都崩溃。 如果将它传递给另一个受 maybe() 保护的函数，它将再次返回 undefined。 可以继续使用 maybe() 来保护我们喜欢的任何数量的函数。 比编写一个无数的 if 语句简单得多。\n返回函数的函数在 React 社区中也很常见。 例如，来自 react-redux 的 connect() 是一个返回函数的函数。\n接下来是什么前文，我们已经看到了一些高阶函数的例子。 但又怎么样呢？ 它们赋予我们什么能力？没有它们，我们会失去什么？ 有比一般更大的示例吗？\n要回答这个问题，让我们再看一个例子，内置数组方法 .sort()。（虽然和一般的高阶函数不一样，它会改变数组而不是返回一个新数组， 但是让我们暂时忽略这点。） .sort() 方法是一个高阶函数，它需要一个函数作为其参数之一。\n它是如何工作的？ 如果想对一组数字进行排序，首先要创建一个比较功能的函数，它可能看起来像这样：12345function compareNumbers(a, b) &#123;    if (a === b) return 0;    if (a &gt; b)   return 1;    /* else */   return -1;&#125;\n然后，为了对数组进行排序，可以这样使用它：1234let nums = [7, 3, 1, 5, 8, 9, 6, 4, 2];nums.sort(compareNumbers);console.log(nums);// =&gt; [1, 2, 3, 4, 5, 6, 7, 8, 9]\n这里可以对数字列表进行排序。 但有多大用处呢？ 多久有一个需要排序的数字列表？ 其实不常见。 但是我经常需要对一组对象进行排序，例如这样的数组：1234567891011121314151617181920212223242526272829303132let typeaheadMatches = [    &#123;        keyword: 'bogey',        weight: 0.25,        matchedChars: ['bog'],    &#125;,    &#123;        keyword: 'bog',        weight: 0.5,        matchedChars: ['bog'],    &#125;,    &#123;        keyword: 'boggle',        weight: 0.3,        matchedChars: ['bog'],    &#125;,    &#123;        keyword: 'bogey',        weight: 0.25,        matchedChars: ['bog'],    &#125;,    &#123;        keyword: 'toboggan',        weight: 0.15,        matchedChars: ['bog'],    &#125;,    &#123;        keyword: 'bag',        weight: 0.1,        matchedChars: ['b', 'g'],    &#125;];\n想象一下，想要按每个条目的权重对此数组进行排序。 我们可以从头开始编写新的排序功能，但并不需要。 相反，我们可以跟据之前的函数创建一个新的比较函数。1234567function compareTypeaheadResult(word1, word2) &#123;    return -1 * compareNumbers(word1.weight, word2.weight);&#125;​typeaheadMatches.sort(compareTypeaheadResult);console.log(typeaheadMatches);// =&gt; [&#123;keyword: \"bog\", weight: 0.5, matchedChars: [\"bog\"]&#125;, … ]\n我们可以为想要的任何类型的数组编写比较函数。 .sort() 方法似乎与我们达成了协议 —— “如果你能给我一个比较函数，我会对任何数组进行排序。不要担心数组中的内容。如果你给我一个比较函数，我会对它进行排序。“因此，不必担心自己编写排序算法，只需要专注于比较两个元素的更简单任务。\n现在，想象一下，如果没有高阶函数，无法将函数传递给 .sort() 方法。每当需要对不同类型的数组进行排序时，我们就必须编写一个新的排序函数。或者，最终会用函数指针或对象重新发明相同的东西。无论哪种方式都会更加笨拙。\n不过，确实有更高阶的功能，这将排序功能与比较功能分开。想象一下，如果一位聪明的浏览器工程师出现并更新 .sort() 以使用更快的算法。无论他们排序的数组内部是什么，每个人的代码都会受益。而且，现在已经有一整套高阶数组函数遵循这种模式。\n这带来了更广泛的想法。 .sort() 方法抽象了对数组中的内容进行排序的任务，这就是所谓的“关注点分离”。高阶函数让我们创建笨拙或不可能的抽象。创建抽象是软件工程的 80％。\n每当重构代码以消除重复时，我们就会创建抽象。看到一个模式，并用该模式的抽象表示来替换它。因此，代码变得更简洁，更容易理解。至少，这就是其中一个方式。\n高阶函数是创建抽象的强大工具，并且有一个与抽象相关的整个数学领域，它被称为 类属理论（范畴论）。其更准确的表述是，类属理论是用于发现抽象的抽象。换句话说，它是用于寻找模式的模式。在过去的70年左右，聪明的程序员一直在借鉴它们的想法，这些想法主要表现为编程语言功能和库。如果学习这些模式的模式，有时候可以删除整个代码，或者将复杂问题简化为多个简单构建块的优雅组合。这些构建块就是高阶函数。上面所说就是高阶函数很重要的原因，因为有了它们，就有用了一个能对抗代码中复杂性的强大工具。\n结语如果你想了解有关高阶函数的更多信息，请参考以下内容：\n\n高阶函数：Marijn Haverbeke 的 Eloquent JavaScript 第5章。\n高阶函数：Eric Elliott 编写的软件系列的一部分。\nJavaScript 中的高阶函数：M. David Green for Sitepoint。\n\n因为 JavaScript 已经支持了高阶函数，避免了考虑使用方式的问题，让我们可以很容易使用高阶函数的方式去实现、优化一些功能。而大家在了解这些之后，会发现高阶函数并不复杂，它很方便地帮我们去完成一些事情。\n但是，在这个看似简单的高阶函数背后，包含着函数式编程的思想、理论和范式。当你步入这个领域，你会发现它如此强大。\n","dateCreated":"2019-07-26T18:00:00+08:00","dateModified":"2019-09-04T21:41:02+08:00","datePublished":"2019-07-26T18:00:00+08:00","description":"原文：FUNCTIONAL JAVASCRIPT: WHAT ARE HIGHER-ORDER FUNCTIONS, AND WHY SHOULD ANYONE CARE?\n译者序：当前，面向对象语言盛行，很多人觉得函数式编程只存在于一些偏门语言中，并在特定的需求下使用。现在很多语言都引入了函数式编程的特性，并吸纳其优点，如我们最熟悉的 JDK，JSDK8 已经引入了函数式编程的一些特性。而对于前端开发者而言，函数式编程看似遥远，其实很近。\nJavaScript 天然支持高阶函数和闭包，其实已经让函数式编程融入到平时的工作中。哪怕没听过函数式编程的人，也都使用过函数式编程的方式。","headline":"【译】函数式 JavaScript：大家所关心的高阶函数","image":["https://tva1.sinaimg.cn/large/006y8mN6ly1g6nt4rt1prj30je0b43yo.jpg"],"mainEntityOfPage":{"@type":"WebPage","@id":"https://e-lim.cn/20190726/"},"publisher":{"@type":"Organization","name":"Edwon Lim","sameAs":["https://ws3.sinaimg.cn/large/006tKfTcly1frsdntpo4aj30jb0ich0m.jpg","https://weibo.com/edwonlim","https://github.com/EdwonLim","mailto:edwon.lim@gmail.com","/books"],"image":"https://tvax4.sinaimg.cn/crop.0.0.512.512.180/71c50075ly8fxujicydtnj20e80e8aab.jpg","logo":{"@type":"ImageObject","url":"https://tvax4.sinaimg.cn/crop.0.0.512.512.180/71c50075ly8fxujicydtnj20e80e8aab.jpg"}},"url":"https://e-lim.cn/20190726/","keywords":"函数式编程","thumbnailUrl":"https://tva1.sinaimg.cn/large/006y8mN6ly1g6nt4rt1prj30je0b43yo.jpg"}</script>
+    <meta name="description" content="原文：FUNCTIONAL JAVASCRIPT: WHAT ARE HIGHER-ORDER FUNCTIONS, AND WHY SHOULD ANYONE CARE? 译者序：当前，面向对象语言盛行，很多人觉得函数式编程只存在于一些偏门语言中，并在特定的需求下使用。现在很多语言都引入了函数式编程的特性，并吸纳其优点，如我们最熟悉的 JDK，JSDK8 已经引入了函数式编程的一些特性。而对于前">
+<meta name="keywords" content="函数式编程">
+<meta property="og:type" content="blog">
+<meta property="og:title" content="【译】函数式 JavaScript：大家所关心的高阶函数">
+<meta property="og:url" content="https://e-lim.cn/20190726/index.html">
+<meta property="og:site_name" content="E-Lim 的博客">
+<meta property="og:description" content="原文：FUNCTIONAL JAVASCRIPT: WHAT ARE HIGHER-ORDER FUNCTIONS, AND WHY SHOULD ANYONE CARE? 译者序：当前，面向对象语言盛行，很多人觉得函数式编程只存在于一些偏门语言中，并在特定的需求下使用。现在很多语言都引入了函数式编程的特性，并吸纳其优点，如我们最熟悉的 JDK，JSDK8 已经引入了函数式编程的一些特性。而对于前">
+<meta property="og:locale" content="zh-cn">
+<meta property="og:updated_time" content="2019-09-04T13:41:02.995Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="【译】函数式 JavaScript：大家所关心的高阶函数">
+<meta name="twitter:description" content="原文：FUNCTIONAL JAVASCRIPT: WHAT ARE HIGHER-ORDER FUNCTIONS, AND WHY SHOULD ANYONE CARE? 译者序：当前，面向对象语言盛行，很多人觉得函数式编程只存在于一些偏门语言中，并在特定的需求下使用。现在很多语言都引入了函数式编程的特性，并吸纳其优点，如我们最熟悉的 JDK，JSDK8 已经引入了函数式编程的一些特性。而对于前">
+    
+    
+        
+    
+    
+        <meta property="og:image" content="https://tvax4.sinaimg.cn/crop.0.0.512.512.180/71c50075ly8fxujicydtnj20e80e8aab.jpg"/>
+    
+    
+        <meta property="og:image" content="https://tva1.sinaimg.cn/large/006y8mN6ly1g6nt4rt1prj30je0b43yo.jpg"/>
+        <meta class="swiftype" name="image" data-type="enum" content="https://tva1.sinaimg.cn/large/006y8mN6ly1g6nt4rt1prj30je0b43yo.jpg" />
+    
+    
+    
+    <!--STYLES-->
+    <link rel="stylesheet" href="/assets/css/style-1udptkpril81ozu8ifd8zpujn7ipu7lefxsiu5gxx0dpnzntdx6dusvki3ao.min.css">
+    <!--STYLES END-->
+    
+
+    
+</head>
+
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
+
+
+    
+        
+            
+        
+    
+
+<header id="header" data-behavior="4">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <div class="header-title">
+        <a class="header-title-link" href="/ ">E-Lim 的博客</a>
+    </div>
+    
+        
+            <a class="header-right-picture " href="#about">
+        
+        
+            <img class="header-picture" src="https://tvax4.sinaimg.cn/crop.0.0.512.512.180/71c50075ly8fxujicydtnj20e80e8aab.jpg" alt="作者的图片">
+        
+        </a>
+    
+</header>
+
+            <style type="text/css">
+    #sidebar .sidebar-button-link:focus {
+        outline: none;
+    }
+</style>
+<!-- Define author's picture -->
+
+
+
+        
+    
+
+<nav id="sidebar" data-behavior="4">
+    <div class="sidebar-container">
+        
+            <div class="sidebar-profile">
+                <a href="/#about">
+                    <img class="sidebar-profile-picture" src="https://tvax4.sinaimg.cn/crop.0.0.512.512.180/71c50075ly8fxujicydtnj20e80e8aab.jpg" alt="作者的图片">
+                </a>
+                <h4 class="sidebar-profile-name">Edwon Lim</h4>
+                
+                    <h5 class="sidebar-profile-bio"><p>性格决定命运，细节决定成败</p>
+</h5>
+                
+            </div>
+        
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a class="sidebar-button-link " href="/ " title="首页">
+                    
+                        <i class="sidebar-button-icon fa fa-lg fa-home" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">首页</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a class="sidebar-button-link " href="/all-categories" title="分类">
+                    
+                        <i class="sidebar-button-icon fa fa-lg fa-bookmark" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">分类</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a class="sidebar-button-link " href="/all-tags" title="标签">
+                    
+                        <i class="sidebar-button-icon fa fa-lg fa-tags" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">标签</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a class="sidebar-button-link " href="/all-archives" title="归档">
+                    
+                        <i class="sidebar-button-icon fa fa-lg fa-archive" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">归档</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a class="sidebar-button-link " href="#about" title="关于">
+                    
+                        <i class="sidebar-button-icon fa fa-lg fa-question" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">关于</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a class="sidebar-button-link " href="https://ws3.sinaimg.cn/large/006tKfTcly1frsdntpo4aj30jb0ich0m.jpg" target="_blank" rel="noopener" title="WeChat">
+                    
+                        <i class="sidebar-button-icon fa fa-lg fa-wechat" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">WeChat</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a class="sidebar-button-link " href="https://weibo.com/edwonlim" target="_blank" rel="noopener" title="Weibo">
+                    
+                        <i class="sidebar-button-icon fa fa-lg fa-weibo" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">Weibo</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a class="sidebar-button-link " href="https://github.com/EdwonLim" target="_blank" rel="noopener" title="GitHub">
+                    
+                        <i class="sidebar-button-icon fa fa-lg fa-github" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">GitHub</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a class="sidebar-button-link " href="mailto:edwon.lim@gmail.com" target="_blank" rel="noopener" title="E-mail">
+                    
+                        <i class="sidebar-button-icon fa fa-lg fa-envelope-o" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">E-mail</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a class="sidebar-button-link " href="/books" title="Books">
+                    
+                        <i class="sidebar-button-icon fa fa-lg fa-book" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">Books</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+    </div>
+</nav>
+
+            
+            <div id="main" data-behavior="4"
+                 class="
+                        hasCoverMetaIn
+                        ">
+                <style type="text/css">
+    .post-action-btn:focus {
+        outline: none;
+    }
+</style>
+
+<article class="post">
+    
+    
+        <div class="post-header main-content-wrap text-left">
+    
+        <h1 class="post-title">
+            【译】函数式 JavaScript：大家所关心的高阶函数
+        </h1>
+    
+    
+        <div class="post-meta">
+    
+    <time datetime="2019-07-26T18:00:00+08:00">
+	
+		    2019 年 07 月 26 日
+    	
+    </time>
+    
+        <span>发布在 </span>
+        《
+    <a class="category-link" href="/categories/潮流技术/">潮流技术</a>
+
+》
+    
+    
+    。
+    <span>文章共 3,991 字，大约需要阅读 15 分钟。</span>
+    
+    
+</div>
+
+    
+</div>
+
+    
+    <style type="text/css">
+        .post .post-content img {
+            margin: 0 auto;
+        }
+    </style>
+    <div class="post-content markdown">
+        <div class="main-content-wrap">
+            <p>原文：<a href="https://jrsinclair.com/articles/2019/what-is-a-higher-order-function-and-why-should-anyone-care/" target="_blank" rel="noopener">FUNCTIONAL JAVASCRIPT: WHAT ARE HIGHER-ORDER FUNCTIONS, AND WHY SHOULD ANYONE CARE?</a></p>
+<h2 id="译者序："><a href="#译者序：" class="headerlink" title="译者序："></a>译者序：</h2><p>当前，面向对象语言盛行，很多人觉得函数式编程只存在于一些偏门语言中，并在特定的需求下使用。现在很多语言都引入了函数式编程的特性，并吸纳其优点，如我们最熟悉的 JDK，JSDK8 已经引入了函数式编程的一些特性。而对于前端开发者而言，函数式编程看似遥远，其实很近。</p>
+<p>JavaScript 天然支持高阶函数和闭包，其实已经让函数式编程融入到平时的工作中。哪怕没听过函数式编程的人，也都使用过函数式编程的方式。</p>
+<a id="more"></a>
+<p>广义地说，所有 Callback 类的调用，例如 DOM 件的监听、数组方法（forEach、Map）等的使用，都属于函数式编程的范畴。</p>
+<p>这篇文章，立足于 JavaScript 中的函数，为大家剖析函数式编程里最重要的高阶函数，让读者可以对 JavaScript 中的函数式编程有一定的了解。</p>
+<h2 id="正文"><a href="#正文" class="headerlink" title="正文"></a>正文</h2><p>“高阶函数”是人们抛出的一个概念，但是大家很难解释清楚它意味着什么？也许你已经知道什么是高阶函数，但是你并不清楚如何在现实中使用？什么情况下使用？使用后产生什么效果？甚至说，使用了高阶函数以后，得到了什么好处？是否值得炫耀？反过来，是否会因为烂用它们造成代码复杂度上升？</p>
+<p>我个人恰好认为高阶函数是非常有用的，而事实上，我认为它们是 JavaScript 作为一种语言最重要的特性之一，而上面的问题，将在文中一一解答。 </p>
+<p>但在开始之前，让我们先来深入分析一下高阶函数。 为此，文章将从“把函数赋值给变量”开始。</p>
+<h3 id="函数作为“一等公民”"><a href="#函数作为“一等公民”" class="headerlink" title="函数作为“一等公民”"></a>函数作为“一等公民”</h3><p>在 Javascript 中，我们至少有三种方式编写一个函数。首先，可以编写一个函数声明，示例如下。<br><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 拿到一个 Dom 对象，并放在 li 节点里。</span></span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">itemise</span>(<span class="params">el</span>) </span>&#123;</span><br><span class="line">    <span class="keyword">const</span> li = <span class="built_in">document</span>.createElement(<span class="string">'li'</span>);</span><br><span class="line">    li.appendChild(el);</span><br><span class="line">    <span class="keyword">return</span> li;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这种方式大家应该很熟悉。 当然，也可以将其改写为函数表达式。 结果如下：<br><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> itemise = <span class="function"><span class="keyword">function</span>(<span class="params">el</span>) </span>&#123;</span><br><span class="line">    <span class="keyword">const</span> li = <span class="built_in">document</span>.createElement(<span class="string">'li'</span>);</span><br><span class="line">    li.appendChild(el);</span><br><span class="line">    <span class="keyword">return</span> li;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>还有另一种方法来编写相同的函数，这种方式被称为箭头函数：<br><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> itemise = <span class="function">(<span class="params">el</span>) =&gt;</span> &#123;</span><br><span class="line">    <span class="keyword">const</span> li = <span class="built_in">document</span>.createElement(<span class="string">'li'</span>);</span><br><span class="line">    li.appendChild(el);</span><br><span class="line">    <span class="keyword">return</span> li;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>就目的而言，上面的三个方式实现的功能基本相同。 但请注意，最后两个示例将函数赋值给变量。看起来并没有什么不同，但是不一定所有编程语言都可以把函数赋值给变量，这是一个伟大的特性。JavaScript 中的函数是“一等公民”。 也就是说，我们可以：</p>
+<ul>
+<li>将函数赋值给变量;</li>
+<li>将函数作为参数传递给其他函数; </li>
+<li>从其他函数返回函数。</li>
+</ul>
+<p>以上看起来不错，但与高阶函数有什么关系呢？我们先来看上面所列的后两点。先给出“将函数作为参数传递给其他函数”的例子，我们编写一个可以与DOM 元素一起使用的函数。 如果运行 <code>document.querySelectorAll()</code>，我们会得到一个 NodeList 而不是一个数组。NodeList 没有像数组那样的 <code>.map()</code> 方法，所以写一个：<br><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 将给定函数应用于 NodeList 中的每个项目并返回一个数组。</span></span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">elListMap</span>(<span class="params">transform, list</span>) </span>&#123;</span><br><span class="line">    <span class="comment">// list 可能是 NodeList，它没有 .map()，所以我们转换它变为一个数组。</span></span><br><span class="line">    <span class="keyword">return</span> [...list].map(transform);</span><br><span class="line">&#125;</span><br><span class="line">​</span><br><span class="line"><span class="comment">// 使用 “for-listing” 类抓取页面上的所有 span。</span></span><br><span class="line"><span class="keyword">const</span> mySpans = <span class="built_in">document</span>.querySelectorAll(<span class="string">'span.for-listing'</span>);</span><br><span class="line">​</span><br><span class="line"><span class="comment">// 将每个包裹在 &lt;li&gt; 元素中。这里，我们重新使用了之前的 itemise() 函数。</span></span><br><span class="line"><span class="keyword">const</span> wrappedList = elListMap(itemise, mySpans);</span><br></pre></td></tr></table></figure></p>
+<p>在这个例子中，我们将 <code>itemise</code> 函数作为参数传递给 <code>elListMap</code> 函数。 但是可以使用 <code>elListMap</code> 函数来创建列表。 例如，可以使用它将类添加到一组元素中。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">addSpinnerClass</span>(<span class="params">el</span>) </span>&#123;</span><br><span class="line">    el.classList.add(<span class="string">'spinner'</span>);</span><br><span class="line">    <span class="keyword">return</span> el;</span><br><span class="line">&#125;</span><br><span class="line">​</span><br><span class="line"><span class="comment">// 找到 'loader' 类的所有 button。</span></span><br><span class="line"><span class="keyword">const</span> loadButtons = <span class="built_in">document</span>.querySelectorAll(<span class="string">'button.loader'</span>);</span><br><span class="line">​</span><br><span class="line"><span class="comment">// 将 spinner 类添加到我们找到的所有 button 上。</span></span><br><span class="line">elListMap(addSpinnerClass, loadButtons);</span><br></pre></td></tr></table></figure>
+<p><code>elLlistMap</code> 函数将一个函数作为参数进行转换。 这意味着可以重用 <code>elListMap</code> 函数来完成一堆不同的任务。</p>
+<p>现在已经看到了将函数作为参数传递的示例。 但是从函数返回函数是怎么样的呢？ 那可能是什么样的？</p>
+<p>从编写常规旧函数开始。 想要列出 <code>&lt;li&gt;</code> 元素并将它们包装在 <code>&lt;ul&gt;</code> 中。 并不是那么困难：<br><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">wrapWithUl</span>(<span class="params">children</span>) </span>&#123;</span><br><span class="line">    <span class="keyword">const</span> ul = <span class="built_in">document</span>.createElement(<span class="string">'ul'</span>);</span><br><span class="line">    <span class="keyword">return</span> [...children].reduce(<span class="function">(<span class="params">listEl, child</span>) =&gt;</span> &#123;</span><br><span class="line">        listEl.appendChild(child);</span><br><span class="line">        <span class="keyword">return</span> listEl;</span><br><span class="line">    &#125;, ul);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>但是，如果以后有一堆段落元素要包含在 <code>&lt;div&gt;</code> 中，要怎么办呢？ 没问题。 可以为此编写了一个函数：<br><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">wrapWithDiv</span>(<span class="params">children</span>) </span>&#123;</span><br><span class="line">    <span class="keyword">const</span> div = <span class="built_in">document</span>.createElement(<span class="string">'div'</span>);</span><br><span class="line">    <span class="keyword">return</span> [...children].reduce(<span class="function">(<span class="params">divEl, child</span>) =&gt;</span> &#123;</span><br><span class="line">        divEl.appendChild(child);</span><br><span class="line">        <span class="keyword">return</span> divEl;</span><br><span class="line">    &#125;, div);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这样就可以正常工作了。 但是这两个功能看起来很强大。 两者之间唯一有意义的变化是创建的父元素。</p>
+<p>现在，可以编写一个带有两个参数的函数：父元素的类型和子元素列表。 但是，还有另一种方法可以做到这一点。 可以创建一个返回函数的函数。 它可能看起来像这样：<br><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">createListWrapperFunction</span>(<span class="params">elementType</span>) </span>&#123;</span><br><span class="line">    <span class="comment">// 直接返回一个函数。</span></span><br><span class="line">    <span class="keyword">return</span> <span class="function"><span class="keyword">function</span> <span class="title">wrap</span>(<span class="params">children</span>) </span>&#123;</span><br><span class="line">      <span class="comment">// 在 wrap 函数中，可以看到 elementType 参数。</span></span><br><span class="line">      <span class="keyword">const</span> parent = <span class="built_in">document</span>.createElement(elementType);</span><br><span class="line">      <span class="keyword">return</span> [...children].reduce(<span class="function">(<span class="params">parentEl, child</span>) =&gt;</span> &#123;</span><br><span class="line">          parentEl.appendChild(child);</span><br><span class="line">          <span class="keyword">return</span> parentEl;</span><br><span class="line">      &#125;, parent);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这可能看起来有点复杂，所以分解它。 创建了一个除了返回另一个函数之外什么都不做的函数。 但是，返回的函数会记住 <code>elementType</code> 参数。 然后，当调用返回的函数时，它知道要创建什么类型的元素。 所以，可以像这样创建 <code>wrapWithUl</code> 和 <code>wrapWithDiv</code> ：<br><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> wrapWithUl  = createListWrapperFunction(<span class="string">'ul'</span>);</span><br><span class="line"><span class="comment">// wrapWithUl() 函数现在“记住”它创建了一个 ul 元素。</span></span><br><span class="line">​</span><br><span class="line"><span class="keyword">const</span> wrapWithDiv = createListWreapperFunction(<span class="string">'div'</span>);</span><br><span class="line"><span class="comment">// wrapWithDiv() 函数现在“记住”它创建了一个 div 元素。</span></span><br></pre></td></tr></table></figure></p>
+<p>返回的函数“记住”某些内容具有技术名称的业务，这称之为封闭。 封闭过于方便，但现在不会过多担心它们。</p>
+<p>所以，我们已经看到：</p>
+<ul>
+<li>为变量分配函数;</li>
+<li>将函数作为参数传递; </li>
+<li>从另一个函数返回一个函数。</li>
+</ul>
+<p>总而言之，拥有这些高级的功能是相当不错的。但这与高阶函数有什么关系呢？ 下面让我们看看高阶函数的定义。</p>
+<h3 id="高阶函数是什么？"><a href="#高阶函数是什么？" class="headerlink" title="高阶函数是什么？"></a>高阶函数是什么？</h3><p>高阶函数是：</p>
+<blockquote>
+<p>A function that takes a function as an argument, or returns a function as a result（将函数作为参数的函数，或作为结果返回函数的函数）</p>
+</blockquote>
+<p>听起来有点耳熟？ 在 JavaScript 中，函数是一等公民，而“高阶函数”则是利用此功能创造的更复杂的函数。 </p>
+<h4 id="高阶函数的例子"><a href="#高阶函数的例子" class="headerlink" title="高阶函数的例子"></a>高阶函数的例子</h4><p>一旦你开始寻找，你会看到所有高阶函数中最常见的是接受函数作为参数的函数。因此，先来看看这些常见的，随后再去介绍一些返回函数的函数的实际示例。</p>
+<h4 id="接受函数作为参数的函数"><a href="#接受函数作为参数的函数" class="headerlink" title="接受函数作为参数的函数"></a>接受函数作为参数的函数</h4><p>通过“回调”功能的任何地方，你都在使用高阶函数。 这些在前端开发中无处不在，其中最常见的是 <code>.addEventListener()</code> 方法。 当想要响应事件而采取行动时，我们会使用此功能。 例如，如果我想开发一个按钮弹出警报：<br><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">showAlert</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">  alert(<span class="string">'Fallacies do not cease to be fallacies because they become fashions'</span>);</span><br><span class="line">&#125;</span><br><span class="line">​</span><br><span class="line"><span class="built_in">document</span>.body.innerHTML += <span class="string">`&lt;button type="button" class="js-alertbtn"&gt;</span></span><br><span class="line"><span class="string">  Show alert</span></span><br><span class="line"><span class="string">&lt;/button&gt;`</span>;</span><br><span class="line">​</span><br><span class="line"><span class="keyword">const</span> btn = <span class="built_in">document</span>.querySelector(<span class="string">'.js-alertbtn'</span>);</span><br><span class="line">​</span><br><span class="line">btn.addEventListener(<span class="string">'click'</span>, showAlert);</span><br></pre></td></tr></table></figure></p>
+<p>在此示例中，我们创建一个显示警报的函数。 然后在页面上添加一个按钮。 最后，将 <code>showAlert()</code> 函数作为参数传递给 <code>btn.addEventListener()</code>。</p>
+<p>当使用数组迭代方法时，也会看到高阶函数。 也就是说，像 <code>.map()</code>，<code>.filter()</code> 和 <code>.reduce()</code> 这样的方法。 这里已经通过 <code>elListMap()</code> 函数看到了这种方式：<br><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">elListMap</span>(<span class="params">transform, list</span>) </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> [...list].map(transform);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>高阶函数也有助于处理延迟和时序。 <code>setTimeout()</code> 和 <code>setInterval()</code> 函数都可以帮助管理函数执行的时间。 例如，如果想在 30 秒后删除高亮类，可能会这样做：<br><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">removeHighlights</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">    <span class="keyword">const</span> highlightedElements = <span class="built_in">document</span>.querySelectorAll(<span class="string">'.highlighted'</span>);</span><br><span class="line">    elListMap(<span class="function"><span class="params">el</span> =&gt;</span> el.classList.remove(<span class="string">'highlighted'</span>), highlightedElements);</span><br><span class="line">&#125;</span><br><span class="line">​</span><br><span class="line">setTimeout(removeHighlights, <span class="number">30000</span>);</span><br></pre></td></tr></table></figure></p>
+<p>同样，创建一个函数并将其作为参数传递给另一个函数。</p>
+<p>如你所见，在 JavaScript 中经常使用接受函数的函数。 事实上，你可能已经使用过它们了。</p>
+<h4 id="返回函数的函数"><a href="#返回函数的函数" class="headerlink" title="返回函数的函数"></a>返回函数的函数</h4><p>返回函数的函数不像接受函数的函数那样常见。 但它们仍然有用。 其中一个最有用的例子是 maybe() 函数。 我从 Reginald Braithewaite 的 JavaScript Allongé 改编了这个。 它看起来像这样：<br><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">maybe</span>(<span class="params">fn</span>)</span></span><br><span class="line"><span class="function">    <span class="title">return</span> <span class="title">function</span> <span class="title">_maybe</span>(<span class="params">...args</span>) </span>&#123;</span><br><span class="line">        <span class="comment">// 注意，== 是故意的。</span></span><br><span class="line">        <span class="keyword">if</span> ((args.length === <span class="number">0</span>) || args.some(<span class="function"><span class="params">a</span> =&gt;</span> (a == <span class="literal">null</span>)) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">undefined</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> fn.apply(<span class="keyword">this</span>, args);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>现在先看看如何使用它，而不是解释它如何工作。 再次查看函数 <code>elListMap()</code>：<br><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 将给定函数应用于 NodeList 中的每个项目并返回一个数组。</span></span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">elListMap</span>(<span class="params">transform, list</span>) </span>&#123;</span><br><span class="line">    <span class="comment">// list 可能是 NodeList，它没有 .map()，所以我们转换它变为一个数组。.</span></span><br><span class="line">    <span class="keyword">return</span> [...list].map(transform);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如果将 <code>null</code> 或未定义的值传递给 <code>elListMap()</code> 会发生什么？ 会得到一个 <code>TypeError</code>，无论做什么都会崩溃。 <code>maybe()</code> 函数可以解决这个问题。 这样使用它：<br><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> safeElListMap = maybe(elListMap);</span><br><span class="line">safeElListMap(<span class="function"><span class="params">x</span> =&gt;</span> x, <span class="literal">null</span>);</span><br><span class="line"><span class="comment">// ￩ undefined</span></span><br></pre></td></tr></table></figure></p>
+<p>该函数返回 <code>undefined</code>，而不是一切都崩溃。 如果将它传递给另一个受 <code>maybe()</code> 保护的函数，它将再次返回 <code>undefined</code>。 可以继续使用 <code>maybe()</code> 来保护我们喜欢的任何数量的函数。 比编写一个无数的 <code>if</code> 语句简单得多。</p>
+<p>返回函数的函数在 React 社区中也很常见。 例如，来自 react-redux 的 <code>connect()</code> 是一个返回函数的函数。</p>
+<h2 id="接下来是什么"><a href="#接下来是什么" class="headerlink" title="接下来是什么"></a>接下来是什么</h2><p>前文，我们已经看到了一些高阶函数的例子。 但又怎么样呢？ 它们赋予我们什么能力？没有它们，我们会失去什么？ 有比一般更大的示例吗？</p>
+<p>要回答这个问题，让我们再看一个例子，内置数组方法 <code>.sort()</code>。（虽然和一般的高阶函数不一样，它会改变数组而不是返回一个新数组， 但是让我们暂时忽略这点。） <code>.sort()</code> 方法是一个高阶函数，它需要一个函数作为其参数之一。</p>
+<p>它是如何工作的？ 如果想对一组数字进行排序，首先要创建一个比较功能的函数，它可能看起来像这样：<br><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">compareNumbers</span>(<span class="params">a, b</span>) </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (a === b) <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">if</span> (a &gt; b)   <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">    <span class="comment">/* else */</span>   <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>然后，为了对数组进行排序，可以这样使用它：<br><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> nums = [<span class="number">7</span>, <span class="number">3</span>, <span class="number">1</span>, <span class="number">5</span>, <span class="number">8</span>, <span class="number">9</span>, <span class="number">6</span>, <span class="number">4</span>, <span class="number">2</span>];</span><br><span class="line">nums.sort(compareNumbers);</span><br><span class="line"><span class="built_in">console</span>.log(nums);</span><br><span class="line"><span class="comment">// =&gt; [1, 2, 3, 4, 5, 6, 7, 8, 9]</span></span><br></pre></td></tr></table></figure></p>
+<p>这里可以对数字列表进行排序。 但有多大用处呢？ 多久有一个需要排序的数字列表？ 其实不常见。 但是我经常需要对一组对象进行排序，例如这样的数组：<br><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> typeaheadMatches = [</span><br><span class="line">    &#123;</span><br><span class="line">        keyword: <span class="string">'bogey'</span>,</span><br><span class="line">        weight: <span class="number">0.25</span>,</span><br><span class="line">        matchedChars: [<span class="string">'bog'</span>],</span><br><span class="line">    &#125;,</span><br><span class="line">    &#123;</span><br><span class="line">        keyword: <span class="string">'bog'</span>,</span><br><span class="line">        weight: <span class="number">0.5</span>,</span><br><span class="line">        matchedChars: [<span class="string">'bog'</span>],</span><br><span class="line">    &#125;,</span><br><span class="line">    &#123;</span><br><span class="line">        keyword: <span class="string">'boggle'</span>,</span><br><span class="line">        weight: <span class="number">0.3</span>,</span><br><span class="line">        matchedChars: [<span class="string">'bog'</span>],</span><br><span class="line">    &#125;,</span><br><span class="line">    &#123;</span><br><span class="line">        keyword: <span class="string">'bogey'</span>,</span><br><span class="line">        weight: <span class="number">0.25</span>,</span><br><span class="line">        matchedChars: [<span class="string">'bog'</span>],</span><br><span class="line">    &#125;,</span><br><span class="line">    &#123;</span><br><span class="line">        keyword: <span class="string">'toboggan'</span>,</span><br><span class="line">        weight: <span class="number">0.15</span>,</span><br><span class="line">        matchedChars: [<span class="string">'bog'</span>],</span><br><span class="line">    &#125;,</span><br><span class="line">    &#123;</span><br><span class="line">        keyword: <span class="string">'bag'</span>,</span><br><span class="line">        weight: <span class="number">0.1</span>,</span><br><span class="line">        matchedChars: [<span class="string">'b'</span>, <span class="string">'g'</span>],</span><br><span class="line">    &#125;</span><br><span class="line">];</span><br></pre></td></tr></table></figure></p>
+<p>想象一下，想要按每个条目的权重对此数组进行排序。 我们可以从头开始编写新的排序功能，但并不需要。 相反，我们可以跟据之前的函数创建一个新的比较函数。<br><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">compareTypeaheadResult</span>(<span class="params">word1, word2</span>) </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">-1</span> * compareNumbers(word1.weight, word2.weight);</span><br><span class="line">&#125;</span><br><span class="line">​</span><br><span class="line">typeaheadMatches.sort(compareTypeaheadResult);</span><br><span class="line"><span class="built_in">console</span>.log(typeaheadMatches);</span><br><span class="line"><span class="comment">// =&gt; [&#123;keyword: "bog", weight: 0.5, matchedChars: ["bog"]&#125;, … ]</span></span><br></pre></td></tr></table></figure></p>
+<p>我们可以为想要的任何类型的数组编写比较函数。 <code>.sort()</code> 方法似乎与我们达成了协议 —— “如果你能给我一个比较函数，我会对任何数组进行排序。不要担心数组中的内容。如果你给我一个比较函数，我会对它进行排序。“因此，不必担心自己编写排序算法，只需要专注于比较两个元素的更简单任务。</p>
+<p>现在，想象一下，如果没有高阶函数，无法将函数传递给 <code>.sort()</code> 方法。每当需要对不同类型的数组进行排序时，我们就必须编写一个新的排序函数。或者，最终会用函数指针或对象重新发明相同的东西。无论哪种方式都会更加笨拙。</p>
+<p>不过，确实有更高阶的功能，这将排序功能与比较功能分开。想象一下，如果一位聪明的浏览器工程师出现并更新 <code>.sort()</code> 以使用更快的算法。无论他们排序的数组内部是什么，每个人的代码都会受益。而且，现在已经有一整套高阶数组函数遵循这种模式。</p>
+<p>这带来了更广泛的想法。 <code>.sort()</code> 方法抽象了对数组中的内容进行排序的任务，这就是所谓的“关注点分离”。高阶函数让我们创建笨拙或不可能的抽象。创建抽象是软件工程的 80％。</p>
+<p>每当重构代码以消除重复时，我们就会创建抽象。看到一个模式，并用该模式的抽象表示来替换它。因此，代码变得更简洁，更容易理解。至少，这就是其中一个方式。</p>
+<p>高阶函数是创建抽象的强大工具，并且有一个与抽象相关的整个数学领域，它被称为 类属理论（范畴论）。其更准确的表述是，类属理论是用于发现抽象的抽象。换句话说，它是用于寻找模式的模式。在过去的70年左右，聪明的程序员一直在借鉴它们的想法，这些想法主要表现为编程语言功能和库。如果学习这些模式的模式，有时候可以删除整个代码，或者将复杂问题简化为多个简单构建块的优雅组合。这些构建块就是高阶函数。上面所说就是高阶函数很重要的原因，因为有了它们，就有用了一个能对抗代码中复杂性的强大工具。</p>
+<h3 id="结语"><a href="#结语" class="headerlink" title="结语"></a>结语</h3><p>如果你想了解有关高阶函数的更多信息，请参考以下内容：</p>
+<ul>
+<li><a href="https://eloquentjavascript.net/05_higher_order.html" target="_blank" rel="noopener">高阶函数</a>：Marijn Haverbeke 的 Eloquent JavaScript 第5章。</li>
+<li><a href="https://medium.com/javascript-scene/higher-order-functions-composing-software-5365cf2cbe99" target="_blank" rel="noopener">高阶函数</a>：Eric Elliott 编写的软件系列的一部分。</li>
+<li><a href="https://www.sitepoint.com/higher-order-functions-javascript/" target="_blank" rel="noopener">JavaScript 中的高阶函数</a>：M. David Green for Sitepoint。</li>
+</ul>
+<p>因为 JavaScript 已经支持了高阶函数，避免了考虑使用方式的问题，让我们可以很容易使用高阶函数的方式去实现、优化一些功能。而大家在了解这些之后，会发现高阶函数并不复杂，它很方便地帮我们去完成一些事情。</p>
+<p>但是，在这个看似简单的高阶函数背后，包含着函数式编程的思想、理论和范式。当你步入这个领域，你会发现它如此强大。</p>
+
+            
+
+        </div>
+    </div>
+    <div id="post-footer" class="post-footer main-content-wrap">
+        
+            <div class="post-footer-tags">
+                <span class="text-color-light text-small">标签</span><br>
+                
+    <a class="tag tag--primary tag--small t-link" href="/tags/函数式编程/">函数式编程</a>
+
+            </div>
+        
+        
+            <div class="post-actions-wrap">
+    <nav>
+        
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/20190826/" data-tooltip="【译】如何在 JavaScript 中使用强大的复合函数" aria-label="上一篇: 【译】如何在 JavaScript 中使用强大的复合函数">
+                
+                    <i class="fa fa-angle-left" aria-hidden="true"></i>
+                    <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/20190101/" data-tooltip="2019 · 新的开始" aria-label="下一篇: 2019 · 新的开始">
+                
+                    <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                    <i class="fa fa-angle-right" aria-hidden="true"></i>
+                </a>
+            </li>
+        </ul>
+        
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a class="post-action-btn btn btn--default btn-open-shareoptions" href="#btn-open-shareoptions" aria-label="Diesen Beitrag teilen">
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a class="post-action-btn btn btn--default" target="new" href="https://connect.qq.com/widget/shareqq/index.html?url=https://e-lim.cn/20190726/&amp;title=【译】函数式 JavaScript：大家所关心的高阶函数" title="分享到 QQ">
+                    <i class="fa fa-qq" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a class="post-action-btn btn btn--default" target="new" href="https://service.weibo.com/share/share.php?&amp;title=https://e-lim.cn/20190726/" title="分享到 Weibo">
+                    <i class="fa fa-weibo" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a class="post-action-btn btn btn--default" target="new" href="https://cli.im/api/qrcode/code?text=https://e-lim.cn/20190726/" title="分享到 微信">
+                    <i class="fa fa-wechat" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+        
+        
+            
+        
+    </div>
+</article>
+
+
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2019 Edwon Lim. All Rights Reserved. 京ICP备18032586号-1
+    </span>
+</footer>
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="4">
+                    <div class="post-actions-wrap">
+    <nav>
+        
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/20190826/" data-tooltip="【译】如何在 JavaScript 中使用强大的复合函数" aria-label="上一篇: 【译】如何在 JavaScript 中使用强大的复合函数">
+                
+                    <i class="fa fa-angle-left" aria-hidden="true"></i>
+                    <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/20190101/" data-tooltip="2019 · 新的开始" aria-label="下一篇: 2019 · 新的开始">
+                
+                    <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                    <i class="fa fa-angle-right" aria-hidden="true"></i>
+                </a>
+            </li>
+        </ul>
+        
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a class="post-action-btn btn btn--default btn-open-shareoptions" href="#btn-open-shareoptions" aria-label="Diesen Beitrag teilen">
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a class="post-action-btn btn btn--default" target="new" href="https://connect.qq.com/widget/shareqq/index.html?url=https://e-lim.cn/20190726/&amp;title=【译】函数式 JavaScript：大家所关心的高阶函数" title="分享到 QQ">
+                    <i class="fa fa-qq" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a class="post-action-btn btn btn--default" target="new" href="https://service.weibo.com/share/share.php?&amp;title=https://e-lim.cn/20190726/" title="分享到 Weibo">
+                    <i class="fa fa-weibo" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a class="post-action-btn btn btn--default" target="new" href="https://cli.im/api/qrcode/code?text=https://e-lim.cn/20190726/" title="分享到 微信">
+                    <i class="fa fa-wechat" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#" aria-label="Nach oben">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+                </div>
+                <div id="share-options-bar" class="share-options-bar" data-behavior="4">
+    <i id="btn-close-shareoptions" class="fa fa-close"></i>
+    <ul class="share-options">
+        
+            
+            
+            <li class="share-option">
+                <a class="share-option-btn" target="new" href="https://connect.qq.com/widget/shareqq/index.html?url=https://e-lim.cn/20190726/&amp;title=【译】函数式 JavaScript：大家所关心的高阶函数">
+                    <i class="fa fa-qq" aria-hidden="true"></i><span>分享到 QQ</span>
+                </a>
+            </li>
+        
+            
+            
+            <li class="share-option">
+                <a class="share-option-btn" target="new" href="https://service.weibo.com/share/share.php?&amp;title=https://e-lim.cn/20190726/">
+                    <i class="fa fa-weibo" aria-hidden="true"></i><span>分享到 Weibo</span>
+                </a>
+            </li>
+        
+            
+            
+            <li class="share-option">
+                <a class="share-option-btn" target="new" href="https://cli.im/api/qrcode/code?text=https://e-lim.cn/20190726/">
+                    <i class="fa fa-wechat" aria-hidden="true"></i><span>分享到 微信</span>
+                </a>
+            </li>
+        
+    </ul>
+</div>
+
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-remove"></i>
+        </div>
+        
+            <img id="about-card-picture" src="https://tvax4.sinaimg.cn/crop.0.0.512.512.180/71c50075ly8fxujicydtnj20e80e8aab.jpg" alt="作者的图片">
+        
+            <h4 id="about-card-name">Edwon Lim</h4>
+        
+            <div id="about-card-bio"><p>性格决定命运，细节决定成败</p>
+</div>
+        
+        
+            <div id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br>
+                <p>大前端 · 架构</p>
+
+            </div>
+        
+        
+            <div id="about-card-location">
+                <i class="fa fa-map-marker"></i>
+                <br>
+                中国 · 北京
+            </div>
+        
+    </div>
+</div>
+
+        
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+        <!--SCRIPTS-->
+<script src="/assets/js/script-yhuo2grt8r7qkqumzgjoglkfbicl1thukjgmla6jopu56zpcowfedi5zjcor.min.js"></script>
+<!--SCRIPTS END-->
+
+    
+
+
+<script>
+    $(function() {
+        $('a[title="WeChat"]').fancybox({});
+    });
+</script>
+
+    </body>
+</html>
