@@ -7,6 +7,8 @@ thumbnailImagePosition: right
 
 ---
 
+原文：[Performance vs Readability](https://blog.usejournal.com/performance-vs-readability-2e9332730790)
+
 JavaScript  已经发展成为一种更易读的语言。毫无疑问，这对这门语言的发展是毫无害处的。
 
 而软件开发始终是在一个团队不断变化的动态环境中的，这意味着现有代码对于团队新手来说是需要可读的。但是，可读性必须是以性能为代价的吗？在哪里划分性能和可读性之间的界限？什么时候牺牲一个来追求另一个？是否需要在某些时候牺牲其中一个？
