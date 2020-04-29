@@ -24,7 +24,7 @@
     "hexo-server": "^0.2.0",
     "hexo-util": "0.6.3",
     "hexo-wordcount": "^3.0.2",
-    "jquery": "3.3.1",
+    "jquery": "3.5.0",
     "jsdom": "11.6.2",
     "koa": "^2.5.2",
     "koa-wechat-signature": "^1.0.1",
